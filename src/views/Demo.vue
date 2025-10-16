@@ -832,9 +832,12 @@ export default {
     border-radius: 8px 8px 0 0;
 }
 
-.mobile-tab {
-    min-width: 80px;
-    font-size: 0.875rem;
+:deep(.v-tab .v-btn__content) {
+    text-transform: none;
+}
+
+:deep(.v-tab) {
+    min-width: auto !important;
 }
 
 /* Content Styles */
