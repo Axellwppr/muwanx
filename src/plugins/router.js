@@ -9,12 +9,12 @@ const routes = [
         component: Demo,
         props: () => ({ configPath: './config.json' })
     },
-    // {
-    //     path: '/mujoco_menagerie',
-    //     name: 'MujocoMenagerie',
-    //     component: Demo,
-    //     props: () => ({ configPath: './config_mujoco_menagerie.json' })
-    // },
+    {
+        path: '/mujoco_menagerie',
+        name: 'MujocoMenagerie',
+        component: Demo,
+        props: () => ({ configPath: './config_mujoco_menagerie.json' })
+    },
     {
         path: '/myosuite',
         name: 'MyoSuite',

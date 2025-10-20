@@ -196,11 +196,15 @@
     </v-dialog>
 
     <!-- Error dialog -->
-    <v-dialog :model-value="state < 0" persistent :max-width="isMobile ? '90vw' : '600px'"
-        :fullscreen="isMobile && isSmallScreen" scrollable>
-        <v-card class="status-dialog-card" :title="isMobile ? 'Error' : 'Simulation Environment Loading Error'">
+    <v-dialog :model-value="state < 0 || urlParamErrorMessage !== ''" 
+        :persistent="state < 0" 
+        :max-width="isMobile ? '90vw' : '600px'"
+        :fullscreen="isMobile && isSmallScreen" 
+        scrollable>
+        <v-card class="status-dialog-card" 
+            :title="urlParamErrorMessage ? 'Invalid URL Parameters' : (isMobile ? 'Error' : 'Simulation Environment Loading Error')">
             <v-card-text class="dialog-content">
-                <div class="error-text">
+                <div class="error-text" v-if="state < 0">
                     <span v-if="state == -1">
                         Unexpected JS error, please refresh the page
                         <br />
@@ -210,7 +214,17 @@
                         Your browser does not support WebAssembly, please use latest Chrome/Edge/Firefox
                     </span>
                 </div>
+                <div v-if="urlParamErrorMessage" class="warning-content-inline">
+                    <v-icon color="warning" size="48" class="mb-3">mdi-alert</v-icon>
+                    <div class="warning-message">{{ urlParamErrorMessage }}</div>
+                </div>
             </v-card-text>
+            <v-card-actions v-if="urlParamErrorMessage">
+                <v-spacer></v-spacer>
+                <v-btn color="primary" variant="text" @click="urlParamErrorMessage = ''">
+                    OK
+                </v-btn>
+            </v-card-actions>
         </v-card>
     </v-dialog>
 
@@ -232,7 +246,7 @@
             size="small" 
             variant="text"
             class="help-btn"
-            title="Keyboard Shortcuts (H)"
+            title="Keyboard Shortcuts (?)"
         >
             <v-icon color="white">mdi-help</v-icon>
         </v-btn>
@@ -260,7 +274,7 @@
                     </div>
                     <div class="shortcut-item">
                         <div class="shortcut-key">
-                            <kbd @click="showHelpDialog = false" class="clickable-key">h</kbd>
+                            <kbd @click="showHelpDialog = false" class="clickable-key">?</kbd>
                         </div>
                         <div class="shortcut-description">
                             Toggle this help dialog
@@ -272,6 +286,26 @@
                         </div>
                         <div class="shortcut-description">
                             Reset simulation
+                        </div>
+                    </div>
+                    <div class="shortcut-item">
+                        <div class="shortcut-key">
+                            <kbd @click="navigateScene(1)" class="clickable-key">s</kbd>
+                            /
+                            <kbd @click="navigateScene(-1)" class="clickable-key">S</kbd>
+                        </div>
+                        <div class="shortcut-description">
+                            Next / Previous scene
+                        </div>
+                    </div>
+                    <div class="shortcut-item">
+                        <div class="shortcut-key">
+                            <kbd @click="navigatePolicy(1)" class="clickable-key">p</kbd>
+                            /
+                            <kbd @click="navigatePolicy(-1)" class="clickable-key">P</kbd>
+                        </div>
+                        <div class="shortcut-description">
+                            Next / Previous policy
                         </div>
                     </div>
                 </div>
@@ -303,6 +337,7 @@ export default {
         compliant_mode: false,
         state: 0,
         extra_error_message: "",
+        urlParamErrorMessage: "",
         keydown_listener: null,
         runtime: null,
         commandManager: null,
@@ -482,8 +517,12 @@ export default {
                 console.log(this.config);
                 if (!this.config.tasks.length) return;
                 const mujoco = await load_mujoco();
-                const initialTask = this.config.tasks[0];
-                const initialPolicy = initialTask.policies.find(p => p.id === initialTask.default_policy) ?? initialTask.policies[0];
+                
+                // Use the task and policy selected in loadConfig (may be from URL params)
+                const initialTask = this.config.tasks.find(t => t.id === this.task) ?? this.config.tasks[0];
+                const initialPolicy = initialTask.policies.find(p => p.id === this.policy) ?? 
+                                     initialTask.policies.find(p => p.id === initialTask.default_policy) ?? 
+                                     initialTask.policies[0];
                 const { scenePath, metaPath } = this.resolveSceneConfig(initialTask, initialPolicy);
 
                 await this.ensureActionManager(metaPath, initialPolicy);
@@ -516,9 +555,57 @@ export default {
             try {
                 const response = await fetch(this.configPath);
                 this.config = await response.json();
-                const firstTask = this.config.tasks[0];
-                this.task = firstTask?.id ?? null;
-                this.policy = this.resolveDefaultPolicy(firstTask);
+                
+                // Parse URL parameters for initial scene and policy
+                const urlParams = new URLSearchParams(window.location.hash.split('?')[1]);
+                const sceneParam = urlParams.get('scene');
+                const policyParam = urlParams.get('policy');
+                
+                let selectedTask = null;
+                let selectedPolicyId = null;
+                let warningMessages = [];
+                
+                // Try to find task by name from URL parameter
+                if (sceneParam) {
+                    selectedTask = this.config.tasks.find(t => 
+                        t.name.toLowerCase() === sceneParam.toLowerCase()
+                    );
+                    
+                    if (!selectedTask) {
+                        console.warn(`Scene "${sceneParam}" not found, using default`);
+                        warningMessages.push(`Scene "${sceneParam}" not found`);
+                    }
+                }
+                
+                // Fall back to first task if not found
+                if (!selectedTask) {
+                    selectedTask = this.config.tasks[0];
+                }
+                
+                this.task = selectedTask?.id ?? null;
+                
+                // Try to find policy by name from URL parameter
+                if (policyParam && selectedTask?.policies?.length) {
+                    const foundPolicy = selectedTask.policies.find(p => 
+                        p.name.toLowerCase() === policyParam.toLowerCase()
+                    );
+                    
+                    if (foundPolicy) {
+                        selectedPolicyId = foundPolicy.id;
+                    } else {
+                        console.warn(`Policy "${policyParam}" not found for scene "${selectedTask.name}", using default`);
+                        warningMessages.push(`Policy "${policyParam}" not found for scene "${selectedTask.name}"`);
+                    }
+                }
+                
+                // Fall back to default policy if not specified or not found
+                this.policy = selectedPolicyId ?? this.resolveDefaultPolicy(selectedTask);
+                
+                // Show error dialog if there were any issues with URL parameters
+                if (warningMessages.length > 0) {
+                    const defaultPolicyName = selectedTask.policies.find(p => p.id === this.policy)?.name ?? 'default';
+                    this.urlParamErrorMessage = `${warningMessages.join('. ')}.\n\nLoading default: ${selectedTask.name} - ${defaultPolicyName}`;
+                }
             } catch (error) {
                 console.error('Failed to load config:', error);
                 this.state = -1;
@@ -695,6 +782,41 @@ export default {
                 this.resetSimulation();
             }
         },
+        navigateScene(direction) {
+            if (!this.config.tasks || this.config.tasks.length === 0) return;
+            
+            const currentIndex = this.config.tasks.findIndex(t => t.id === this.task);
+            if (currentIndex === -1) return;
+            
+            let nextIndex = currentIndex + direction;
+            // Wrap around
+            if (nextIndex < 0) {
+                nextIndex = this.config.tasks.length - 1;
+            } else if (nextIndex >= this.config.tasks.length) {
+                nextIndex = 0;
+            }
+            
+            this.task = this.config.tasks[nextIndex].id;
+            this.updateTaskCallback();
+        },
+        navigatePolicy(direction) {
+            const selectedTask = this.config.tasks.find(t => t.id === this.task);
+            if (!selectedTask || !selectedTask.policies || selectedTask.policies.length === 0) return;
+            
+            const currentIndex = selectedTask.policies.findIndex(p => p.id === this.policy);
+            if (currentIndex === -1) return;
+            
+            let nextIndex = currentIndex + direction;
+            // Wrap around
+            if (nextIndex < 0) {
+                nextIndex = selectedTask.policies.length - 1;
+            } else if (nextIndex >= selectedTask.policies.length) {
+                nextIndex = 0;
+            }
+            
+            this.policy = selectedTask.policies[nextIndex].id;
+            this.updatePolicyCallback();
+        },
     },
     mounted() {
         this.checkMobileDevice();
@@ -718,8 +840,20 @@ export default {
             if (event.code === 'KeyI') {
                 this.toggleUIVisibility();
             }
-            if (event.code === 'KeyH') {
+            if (event.key === '?') {
                 this.showHelpDialog = !this.showHelpDialog;
+            }
+            if (event.key === 's') {
+                this.navigateScene(1);
+            }
+            if (event.key === 'S') {
+                this.navigateScene(-1);
+            }
+            if (event.key === 'p') {
+                this.navigatePolicy(1);
+            }
+            if (event.key === 'P') {
+                this.navigatePolicy(-1);
             }
         };
         document.addEventListener('keydown', this.keydown_listener);
@@ -832,9 +966,12 @@ export default {
     border-radius: 8px 8px 0 0;
 }
 
-.mobile-tab {
-    min-width: 80px;
-    font-size: 0.875rem;
+:deep(.v-tab .v-btn__content) {
+    text-transform: none;
+}
+
+:deep(.v-tab) {
+    min-width: auto !important;
 }
 
 /* Content Styles */
@@ -961,6 +1098,22 @@ export default {
     justify-content: center;
     font-size: 0.95rem;
     line-height: 1.5;
+}
+
+/* Warning Content Styles */
+.warning-content-inline {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.warning-message {
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: rgba(0, 0, 0, 0.87);
+    white-space: pre-line;
 }
 
 /* Notice Styles */
@@ -1126,17 +1279,12 @@ export default {
 
 <style>
 /* Global styles for interactive mode - hides UI elements when body has 'interactive-mode' class */
-body.interactive-mode .control-panel,
-body.interactive-mode .transition-overlay {
+body.interactive-mode .control-panel {
     display: none !important;
 }
 
-/* Hide loading and error dialogs in interactive mode, but allow help dialog */
-body.interactive-mode .v-dialog:not(:has(.help-content)) {
-    display: none !important;
-}
-
-/* Keep notice and help button visible in interactive mode */
+/* Keep transition overlay, notice, and help button visible in interactive mode */
+body.interactive-mode .transition-overlay,
 body.interactive-mode .notice-container,
 body.interactive-mode .help-button-container {
     display: block !important;

@@ -23,7 +23,7 @@ Perfect for sharing interactive demos as static sites (such as GitHub Pages), ra
 ### 🚀 [Visit the Live Demo](https://ttktjmt.github.io/muwanx/)
 
 **╰▶ [Live Demo with MyoSuite](https://ttktjmt.github.io/muwanx/#/myosuite)** &nbsp;&nbsp;© [MyoSuite](https://github.com/MyoHub/myosuite)  
-**╰▶ Live Demo with MuJoCo Menagerie** ([Licensing and citation compliance pending](https://github.com/google-deepmind/mujoco_menagerie/discussions/210)) &nbsp;&nbsp;© [Google DeepMind](https://github.com/google-deepmind/mujoco_menagerie)
+**╰▶ Live Demo with MuJoCo Menagerie** ([Checking licensing and citation compliance](https://github.com/google-deepmind/mujoco_menagerie/discussions/210)) &nbsp;&nbsp;© [Google DeepMind](https://github.com/google-deepmind/mujoco_menagerie)
 
 
 ## Features
