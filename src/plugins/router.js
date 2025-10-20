@@ -28,4 +28,14 @@ const router = createRouter({
     routes,
 })
 
+// Reinitialize the app on route/params change
+router.beforeEach((to, from, next) => {
+    if (from.name && to.fullPath !== from.fullPath) {
+        window.location.hash = '#' + to.fullPath
+        window.location.reload()
+    } else {
+        next();
+    }
+});
+
 export default router 

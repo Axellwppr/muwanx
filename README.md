@@ -58,7 +58,7 @@ Open your browser and navigate to the localhost URL shown in the terminal to see
 
 ## Acknowledgments
 
-This project has greatly benefited from the contributions of the [Facet](https://github.com/Facet-Team/facet) project by the research group at Tsinghua University.
+This project has greatly benefited from the contributions of the [Facet](https://facet.pages.dev/) project by the research group at Tsinghua University.
 
 
 ## License

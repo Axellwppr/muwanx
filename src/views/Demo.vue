@@ -266,18 +266,18 @@
                 <div class="shortcut-section">
                     <div class="shortcut-item">
                         <div class="shortcut-key">
-                            <kbd @click="toggleUIVisibility" class="clickable-key">i</kbd>
-                        </div>
-                        <div class="shortcut-description">
-                            Toggle Interactive Mode (Hide/Show UI)
-                        </div>
-                    </div>
-                    <div class="shortcut-item">
-                        <div class="shortcut-key">
                             <kbd @click="showHelpDialog = false" class="clickable-key">?</kbd>
                         </div>
                         <div class="shortcut-description">
                             Toggle this help dialog
+                        </div>
+                    </div>
+                    <div class="shortcut-item">
+                        <div class="shortcut-key">
+                            <kbd @click="toggleUIVisibility" class="clickable-key">i</kbd>
+                        </div>
+                        <div class="shortcut-description">
+                            Toggle Interactive Mode (Hide/Show UI)
                         </div>
                     </div>
                     <div class="shortcut-item">
@@ -837,7 +837,7 @@ export default {
             if (event.code === 'Backspace') {
                 this.reset();
             }
-            if (event.code === 'KeyI') {
+            if (event.key === 'i') {
                 this.toggleUIVisibility();
             }
             if (event.key === '?') {
