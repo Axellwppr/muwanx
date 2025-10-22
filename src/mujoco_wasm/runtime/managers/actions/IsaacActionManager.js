@@ -13,9 +13,9 @@ export class IsaacActionManager extends BaseManager {
         this.defaultActuatorParams = null;
     }
 
-    async onSceneLoaded({ model, simulation, assetMeta }) {
-        this.model = model;
-        this.simulation = simulation;
+    async onSceneLoaded({ mjModel, mjData, assetMeta }) {
+        this.mjModel = mjModel;
+        this.mjData = mjData;
         this.assetMeta = assetMeta;
 
         this.jointNamesIsaac = assetMeta["joint_names_isaac"] || [];
@@ -25,19 +25,19 @@ export class IsaacActionManager extends BaseManager {
         this.qvelAdrIsaac = [];
 
         const actuator2joint = [];
-        for (let i = 0; i < model.nu; i++) {
-            const actuator_trntype = model.actuator_trntype[i];
+        for (let i = 0; i < this.mjModel.nu; i++) {
+            const actuator_trntype = this.mjModel.actuator_trntype[i];
             if (actuator_trntype !== this.runtime.mujoco.mjtTrn.mjTRN_JOINT.value) {
                 throw new Error('Expected actuator transmission type to be mjTRN_JOINT');
             }
-            actuator2joint.push(model.actuator_trnid[2 * i]);
+            actuator2joint.push(this.mjModel.actuator_trnid[2 * i]);
         }
 
         this.jointNamesMJC = [];
         const textDecoder = new TextDecoder();
-        const namesArray = new Uint8Array(model.names);
-        for (let j = 0; j < model.njnt; j++) {
-            let startIdx = model.name_jntadr[j];
+        const namesArray = new Uint8Array(this.mjModel.names);
+        for (let j = 0; j < this.mjModel.njnt; j++) {
+            let startIdx = this.mjModel.name_jntadr[j];
             let endIdx = startIdx;
             while (endIdx < namesArray.length && namesArray[endIdx] !== 0) {
                 endIdx++;
@@ -57,8 +57,8 @@ export class IsaacActionManager extends BaseManager {
             }
             const actuatorIdx = actuator2joint.findIndex(jointId => jointId === jointIdx);
             this.ctrlAdrIsaac.push(actuatorIdx);
-            this.qposAdrIsaac.push(model.jnt_qposadr[jointIdx]);
-            this.qvelAdrIsaac.push(model.jnt_dofadr[jointIdx]);
+            this.qposAdrIsaac.push(this.mjModel.jnt_qposadr[jointIdx]);
+            this.qvelAdrIsaac.push(this.mjModel.jnt_dofadr[jointIdx]);
         }
 
         this.numActions = this.jointNamesIsaac.length;
@@ -74,7 +74,7 @@ export class IsaacActionManager extends BaseManager {
         this.runtime.ctrlAdrIsaac = this.ctrlAdrIsaac;
         this.runtime.qposAdrIsaac = this.qposAdrIsaac;
         this.runtime.qvelAdrIsaac = this.qvelAdrIsaac;
-        this.decimation = Math.max(1, Math.round(0.02 / model.getOptions().timestep));
+        this.decimation = Math.max(1, Math.round(0.02 / this.mjModel.opt.timestep));
 
         this.initializeDefaultActuatorParams(assetMeta);
     }
@@ -179,7 +179,7 @@ export class IsaacActionManager extends BaseManager {
     }
 
     beforeSimulationStep() {
-        if (!this.simulation || !this.lastActions) {
+        if (!this.mjData || !this.lastActions) {
             return;
         }
         if (this.controlType === 'joint_position') {
@@ -188,15 +188,15 @@ export class IsaacActionManager extends BaseManager {
                 const qvelAdr = this.qvelAdrIsaac[i];
                 const ctrlAdr = this.ctrlAdrIsaac[i];
                 const targetJpos = this.actionScale[i] * this.lastActions[i] + this.defaultJpos[i];
-                const torque = this.jntKp[i] * (targetJpos - this.simulation.qpos[qposAdr])
-                    + this.jntKd[i] * (0 - this.simulation.qvel[qvelAdr]);
-                this.simulation.ctrl[ctrlAdr] = torque;
+                const torque = this.jntKp[i] * (targetJpos - this.mjData.qpos[qposAdr])
+                    + this.jntKd[i] * (0 - this.mjData.qvel[qvelAdr]);
+                this.mjData.ctrl[ctrlAdr] = torque;
             }
         } else if (this.controlType === 'torque') {
             for (let i = 0; i < this.numActions; i++) {
                 const ctrlAdr = this.ctrlAdrIsaac[i];
                 const torque = this.actionScale[i] * this.lastActions[i];
-                this.simulation.ctrl[ctrlAdr] = torque;
+                this.mjData.ctrl[ctrlAdr] = torque;
             }
         }
     }
@@ -206,8 +206,8 @@ export class IsaacActionManager extends BaseManager {
     }
 
     dispose() {
-        this.model = null;
-        this.simulation = null;
+        this.mjModel = null;
+        this.mjData = null;
         this.assetMeta = null;
     }
 }

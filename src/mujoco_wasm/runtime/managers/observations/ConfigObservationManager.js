@@ -10,7 +10,7 @@ export class ConfigObservationManager extends BaseManager {
         this.historyConfig = {};
     }
 
-    async onPolicyLoaded({ config, model, simulation, assetMeta }) {
+    async onPolicyLoaded({ config, mjModel, mjData, assetMeta }) {
         this.observationGroups = {};
         this.historyBuffers = {};
         this.historyConfig = {};
@@ -29,8 +29,8 @@ export class ConfigObservationManager extends BaseManager {
                 this.observationGroups[key] = components.map(obsConfigItem => 
                     this.createObservationInstance({
                         obsConfig: { ...obsConfigItem, history_steps: 1 }, // Force single timestep
-                        model,
-                        simulation,
+                        mjModel,
+                        mjData,
                         assetMeta,
                     })
                 );
@@ -55,8 +55,8 @@ export class ConfigObservationManager extends BaseManager {
                 this.observationGroups[key] = obsList.map(obsConfigItem => 
                     this.createObservationInstance({
                         obsConfig: obsConfigItem,
-                        model,
-                        simulation,
+                        mjModel,
+                        mjData,
                         assetMeta,
                     })
                 );
@@ -70,7 +70,7 @@ export class ConfigObservationManager extends BaseManager {
         this.historyConfig = {};
     }
 
-    createObservationInstance({ obsConfig, model, simulation }) {
+    createObservationInstance({ obsConfig, mjModel, mjData }) {
         const ObsClass = Observations[obsConfig.name];
         if (!ObsClass) {
             throw new Error(`Unknown observation type: ${obsConfig.name}`);
@@ -80,7 +80,7 @@ export class ConfigObservationManager extends BaseManager {
         if (kwargs.joint_names === 'isaac') {
             kwargs.joint_names = this.runtime.jointNamesIsaac;
         }
-        return new ObsClass(model, simulation, this.runtime, kwargs);
+        return new ObsClass(mjModel, mjData, this.runtime, kwargs);
     }
 
     collect() {

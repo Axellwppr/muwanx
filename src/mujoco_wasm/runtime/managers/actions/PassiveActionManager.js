@@ -5,8 +5,8 @@ export class PassiveActionManager extends BaseManager {
         super();
         this.options = options;
         this.controlType = 'none';
-        this.model = null;
-        this.simulation = null;
+        this.mjModel = null;
+        this.mjData = null;
         this.assetMeta = null;
         this.policyConfig = null;
         this.resetState(0);
@@ -51,28 +51,28 @@ export class PassiveActionManager extends BaseManager {
         this.updateRuntimeState();
     }
 
-    async onSceneLoaded({ model, simulation, assetMeta }) {
-        this.model = model;
-        this.simulation = simulation;
+    async onSceneLoaded({ mjModel, mjData, assetMeta }) {
+        this.mjModel = mjModel;
+        this.mjData = mjData;
         this.assetMeta = assetMeta ?? null;
-        const numActions = typeof model?.nu === 'number' ? model.nu : 0;
+        const numActions = typeof this.mjModel?.nu === 'number' ? this.mjModel.nu : 0;
         this.resetState(numActions);
-        if (this.simulation?.ctrl?.fill) {
-            this.simulation.ctrl.fill(0);
+        if (this.mjData?.ctrl?.fill) {
+            this.mjData.ctrl.fill(0);
         }
     }
 
     async onPolicyLoaded({ config }) {
         this.policyConfig = config ?? null;
         this.controlType = 'none';
-        const numActions = this.model?.nu ?? 0;
+        const numActions = this.mjModel?.nu ?? 0;
         this.resetState(numActions);
     }
 
     async onPolicyCleared() {
         this.policyConfig = null;
         this.controlType = 'none';
-        const numActions = this.model?.nu ?? 0;
+        const numActions = this.mjModel?.nu ?? 0;
         this.resetState(numActions);
     }
 
@@ -81,8 +81,8 @@ export class PassiveActionManager extends BaseManager {
     }
 
     beforeSimulationStep() {
-        if (this.simulation?.ctrl?.fill) {
-            this.simulation.ctrl.fill(0);
+        if (this.mjData?.ctrl?.fill) {
+            this.mjData.ctrl.fill(0);
         }
     }
 
@@ -91,11 +91,11 @@ export class PassiveActionManager extends BaseManager {
     }
 
     dispose() {
-        if (this.simulation?.ctrl?.fill) {
-            this.simulation.ctrl.fill(0);
+        if (this.mjData?.ctrl?.fill) {
+            this.mjData.ctrl.fill(0);
         }
-        this.model = null;
-        this.simulation = null;
+        this.mjModel = null;
+        this.mjData = null;
         this.assetMeta = null;
         this.policyConfig = null;
         this.resetState(0);

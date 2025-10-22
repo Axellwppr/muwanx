@@ -24,9 +24,9 @@ function getOscillator(time) {
  * This is the clean, modular version for composition.
  */
 export class VelocityCommand {
-    constructor(model, simulation, runtime, kwargs = {}) {
-        this.model = model;
-        this.simulation = simulation;
+    constructor(mjModel, mjData, runtime, kwargs = {}) {
+        this.mjModel = mjModel;
+        this.mjData = mjData;
         this.runtime = runtime;
         const { 
             angvel_kp = 1.0,
@@ -59,9 +59,9 @@ export class VelocityCommand {
  * This version includes oscillator features that some policies expect.
  */
 export class VelocityCommandWithOscillators {
-    constructor(model, simulation, runtime, kwargs = {}) {
-        this.model = model;
-        this.simulation = simulation;
+    constructor(mjModel, mjData, runtime, kwargs = {}) {
+        this.mjModel = mjModel;
+        this.mjData = mjData;
         this.runtime = runtime;
         const { angvel_kp = 1.0 } = kwargs;
         this.angvel_kp = angvel_kp;
@@ -86,9 +86,9 @@ export class VelocityCommandWithOscillators {
  * Dims: 27 (15 impedance params + 12 oscillator)
  */
 export class ImpedanceCommand {
-    constructor(model, simulation, runtime, kwargs = {}) {
-        this.model = model;
-        this.simulation = simulation;
+    constructor(mjModel, mjData, runtime, kwargs = {}) {
+        this.mjModel = mjModel;
+        this.mjData = mjData;
         this.runtime = runtime;
         const { mass = 1.0 } = kwargs;
         this.mass = mass;
@@ -99,7 +99,7 @@ export class ImpedanceCommand {
         const kd = 1.8 * Math.sqrt(Math.max(kp, 0.0001));
         const osc = getOscillator(this.runtime.mujoco_time / 1000.0);
 
-        const base_pos_w = new THREE.Vector3(...this.simulation.qpos.subarray(0, 3));
+        const base_pos_w = new THREE.Vector3(...this.mjData.qpos.subarray(0, 3));
         const command_vel_x = new THREE.Vector3(this.runtime.params.command_vel_x, 0, 0);
         const setpoint = command_vel_x.clone().multiplyScalar(kd / (kp || 1)).add(base_pos_w.clone());
         if (this.runtime.params.compliant_mode) {
@@ -144,9 +144,9 @@ export class ImpedanceCommand {
  * Dims: 12
  */
 export class Oscillator {
-    constructor(model, simulation, runtime, kwargs = {}) {
-        this.model = model;
-        this.simulation = simulation;
+    constructor(mjModel, mjData, runtime, kwargs = {}) {
+        this.mjModel = mjModel;
+        this.mjData = mjData;
         this.runtime = runtime;
     }
 

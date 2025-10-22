@@ -11,9 +11,9 @@ import * as THREE from 'three';
  * Dims: 3 * history_steps
  */
 export class BaseLinearVelocity {
-    constructor(model, simulation, runtime, kwargs = {}) {
-        this.model = model;
-        this.simulation = simulation;
+    constructor(mjModel, mjData, runtime, kwargs = {}) {
+        this.mjModel = mjModel;
+        this.mjData = mjData;
         this.runtime = runtime;
         const { history_steps = 1, scale = 1.0 } = kwargs;
         this.steps = history_steps;
@@ -23,11 +23,11 @@ export class BaseLinearVelocity {
 
     compute() {
         // Get base quaternion for frame transformation
-        const baseQuat = this.simulation.qpos.subarray(3, 7);
+        const baseQuat = this.mjData.qpos.subarray(3, 7);
         const quat_inv = new THREE.Quaternion(baseQuat[1], baseQuat[2], baseQuat[3], baseQuat[0]).invert();
         
         // Get linear velocity in world frame and transform to base frame
-        const linVelWorld = this.simulation.qvel.subarray(0, 3);
+        const linVelWorld = this.mjData.qvel.subarray(0, 3);
         const linVelVec = new THREE.Vector3(linVelWorld[0], linVelWorld[1], linVelWorld[2]);
         linVelVec.applyQuaternion(quat_inv);
         
@@ -55,9 +55,9 @@ export class BaseLinearVelocity {
  * Dims: 3 * history_steps
  */
 export class BaseAngularVelocity {
-    constructor(model, simulation, runtime, kwargs = {}) {
-        this.model = model;
-        this.simulation = simulation;
+    constructor(mjModel, mjData, runtime, kwargs = {}) {
+        this.mjModel = mjModel;
+        this.mjData = mjData;
         this.runtime = runtime;
         const { 
             history_steps = 1, 
@@ -72,7 +72,7 @@ export class BaseAngularVelocity {
 
     compute() {
         // Get angular velocity in world frame
-        const angVelWorld = this.simulation.qvel.subarray(3, 6);
+        const angVelWorld = this.mjData.qvel.subarray(3, 6);
         
         let angVel;
         if (this.world_frame) {
@@ -84,7 +84,7 @@ export class BaseAngularVelocity {
             };
         } else {
             // Transform to base frame
-            const baseQuat = this.simulation.qpos.subarray(3, 7);
+            const baseQuat = this.mjData.qpos.subarray(3, 7);
             const quat_inv = new THREE.Quaternion(baseQuat[1], baseQuat[2], baseQuat[3], baseQuat[0]).invert();
             const angVelVec = new THREE.Vector3(angVelWorld[0], angVelWorld[1], angVelWorld[2]);
             angVelVec.applyQuaternion(quat_inv);
@@ -116,9 +116,9 @@ export class BaseAngularVelocity {
  * Dims: 3 * history_steps
  */
 export class ProjectedGravity {
-    constructor(model, simulation, runtime, kwargs = {}) {
-        this.model = model;
-        this.simulation = simulation;
+    constructor(mjModel, mjData, runtime, kwargs = {}) {
+        this.mjModel = mjModel;
+        this.mjData = mjData;
         this.runtime = runtime;
         const {
             joint_name = 'floating_base_joint',
@@ -129,12 +129,12 @@ export class ProjectedGravity {
         this.history = new Array(this.steps).fill(null).map(() => new Float32Array(3));
         
         const jointIdx = runtime.jointNamesMJC.indexOf(joint_name);
-        this.joint_qpos_adr = model.jnt_qposadr[jointIdx];
+        this.joint_qpos_adr = mjModel.jnt_qposadr[jointIdx];
         this.gravity = new THREE.Vector3(...gravity);
     }
 
     compute() {
-        const quat = this.simulation.qpos.subarray(this.joint_qpos_adr + 3, this.joint_qpos_adr + 7);
+        const quat = this.mjData.qpos.subarray(this.joint_qpos_adr + 3, this.joint_qpos_adr + 7);
         const quat_inv = new THREE.Quaternion(quat[1], quat[2], quat[3], quat[0]).invert();
         const gravity = this.gravity.clone().applyQuaternion(quat_inv);
         
@@ -156,9 +156,9 @@ export class ProjectedGravity {
  * Dims: num_joints * history_steps
  */
 export class JointPositions {
-    constructor(model, simulation, runtime, kwargs = {}) {
-        this.model = model;
-        this.simulation = simulation;
+    constructor(mjModel, mjData, runtime, kwargs = {}) {
+        this.mjModel = mjModel;
+        this.mjData = mjData;
         this.runtime = runtime;
         const {
             joint_names = [],
@@ -177,7 +177,7 @@ export class JointPositions {
         this.joint_qpos_adr = [];
         for (let i = 0; i < joint_names.length; i++) {
             const idx = runtime.jointNamesMJC.indexOf(joint_names[i]);
-            this.joint_qpos_adr.push(model.jnt_qposadr[idx]);
+            this.joint_qpos_adr.push(mjModel.jnt_qposadr[idx]);
         }
     }
 
@@ -191,7 +191,7 @@ export class JointPositions {
         
         // Reuse the shifted array (was at history[steps-1], now at history[0])
         for (let i = 0; i < this.num_joints; i++) {
-            let pos = this.simulation.qpos[this.joint_qpos_adr[i]];
+            let pos = this.mjData.qpos[this.joint_qpos_adr[i]];
             if (this.subtract_default) {
                 pos -= defaultJpos[i];
             }
@@ -212,9 +212,9 @@ export class JointPositions {
  * Dims: num_joints * history_steps
  */
 export class JointVelocities {
-    constructor(model, simulation, runtime, kwargs = {}) {
-        this.model = model;
-        this.simulation = simulation;
+    constructor(mjModel, mjData, runtime, kwargs = {}) {
+        this.mjModel = mjModel;
+        this.mjData = mjData;
         this.runtime = runtime;
         const {
             joint_names = [],
@@ -234,7 +234,7 @@ export class JointVelocities {
             if (idx < 0) {
                 throw new Error(`JointVelocities: joint "${joint_names[i]}" not found in jointNamesMJC`);
             }
-            this.joint_qvel_adr.push(model.jnt_dofadr[idx]);
+            this.joint_qvel_adr.push(mjModel.jnt_dofadr[idx]);
         }
     }
 
@@ -246,7 +246,7 @@ export class JointVelocities {
         
         // Reuse the shifted array
         for (let i = 0; i < this.num_joints; i++) {
-            this.history[0][i] = this.simulation.qvel[this.joint_qvel_adr[i]] * this.scale;
+            this.history[0][i] = this.mjData.qvel[this.joint_qvel_adr[i]] * this.scale;
         }
         
         const flattened = new Float32Array(this.steps * this.num_joints);
@@ -267,9 +267,9 @@ export class JointVelocities {
  * - transpose=true: [a0_t0, a0_t1, a0_t2, a1_t0, a1_t1, a1_t2, ...]
  */
 export class PreviousActions {
-    constructor(model, simulation, runtime, kwargs = {}) {
-        this.model = model;
-        this.simulation = simulation;
+    constructor(mjModel, mjData, runtime, kwargs = {}) {
+        this.mjModel = mjModel;
+        this.mjData = mjData;
         this.runtime = runtime;
         const { history_steps = 1, transpose = false } = kwargs;
         this.steps = history_steps;
@@ -306,9 +306,9 @@ export class PreviousActions {
  * Dims: 3 * history_steps
  */
 export class SimpleVelocityCommand {
-    constructor(model, simulation, runtime, kwargs = {}) {
-        this.model = model;
-        this.simulation = simulation;
+    constructor(mjModel, mjData, runtime, kwargs = {}) {
+        this.mjModel = mjModel;
+        this.mjData = mjData;
         this.runtime = runtime;
         const { scale = [1.0, 1.0, 1.0], history_steps = 1 } = kwargs;
         this.scale = Array.isArray(scale) ? scale : [scale, scale, scale];

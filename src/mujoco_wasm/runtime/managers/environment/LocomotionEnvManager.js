@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { BaseManager } from '../BaseManager.js';
-import { DragStateManager } from '../../../examples/utils/DragStateManager.js';
+import { DragStateManager } from '../../utils/DragStateManager.js';
 import { getPosition, getQuaternion, toMujocoPos } from '../../utils/mujocoScene.js';
 
 export class LocomotionEnvManager extends BaseManager {
@@ -125,14 +125,14 @@ export class LocomotionEnvManager extends BaseManager {
         };
     }
 
-    async onSceneLoaded({ model, simulation }) {
-        this.model = model;
-        this.simulation = simulation;
+    async onSceneLoaded({ mjModel, mjData }) {
+        this.mjModel = mjModel;
+        this.mjData = mjData;
         this.runtime.mujocoRoot = this.runtime.scene.getObjectByName('MuJoCo Root');
         this.ball.position.copy(this.defaultBallPosition);
 
         this.pelvisBodyId = null;
-        for (let b = 0; b < model.nbody; b++) {
+        for (let b = 0; b < this.mjModel.nbody; b++) {
             const body = this.runtime.bodies?.[b];
             if (body && body.name === 'base') {
                 this.pelvisBodyId = b;
@@ -142,19 +142,24 @@ export class LocomotionEnvManager extends BaseManager {
     }
 
     beforeSimulationStep() {
-        if (!this.simulation) {
+        if (!this.mjData) {
             return;
         }
-        for (let i = 0; i < this.simulation.qfrc_applied.length; i++) {
-            this.simulation.qfrc_applied[i] = 0.0;
+        // Clear applied forces
+        for (let i = 0; i < this.mjData.qfrc_applied.length; i++) {
+            this.mjData.qfrc_applied[i] = 0.0;
+        }
+        // Clear Cartesian forces (xfrc_applied)
+        for (let i = 0; i < this.mjData.xfrc_applied.length; i++) {
+            this.mjData.xfrc_applied[i] = 0.0;
         }
 
         const dragged = this.dragStateManager.physicsObject;
         if (dragged && dragged.bodyID) {
-            for (let b = 0; b < this.model.nbody; b++) {
+            for (let b = 0; b < this.mjModel.nbody; b++) {
                 if (this.runtime.bodies[b]) {
-                    getPosition(this.simulation.xpos, b, this.runtime.bodies[b].position);
-                    getQuaternion(this.simulation.xquat, b, this.runtime.bodies[b].quaternion);
+                    getPosition(this.mjData.xpos, b, this.runtime.bodies[b].position);
+                    getQuaternion(this.mjData.xquat, b, this.runtime.bodies[b].quaternion);
                     this.runtime.bodies[b].updateWorldMatrix();
                 }
             }
@@ -166,27 +171,62 @@ export class LocomotionEnvManager extends BaseManager {
                 } else {
                     const force = toMujocoPos(this.dragStateManager.offset.clone().multiplyScalar(this.dragForceScale));
                     const point = toMujocoPos(this.dragStateManager.worldHit.clone());
-                    this.simulation.applyForce(
-                        force.x, force.y, force.z,
-                        0, 0, 0,
-                        point.x, point.y, point.z,
-                        this.dragStateManager.physicsObject.bodyID
+                    const bodyId = this.dragStateManager.physicsObject.bodyID;
+                    
+                    // Apply force directly to xfrc_applied (Cartesian forces)
+                    // xfrc_applied is sized (nbody, 6): [fx, fy, fz, tx, ty, tz] for each body
+                    const offset = bodyId * 6;
+                    
+                    // Get body position to compute torque from force at point
+                    const bodyPos = new THREE.Vector3(
+                        this.mjData.xpos[bodyId * 3],
+                        this.mjData.xpos[bodyId * 3 + 1],
+                        this.mjData.xpos[bodyId * 3 + 2]
                     );
+                    
+                    // Compute torque: r × F (cross product of position offset and force)
+                    const r = new THREE.Vector3(point.x - bodyPos.x, point.y - bodyPos.y, point.z - bodyPos.z);
+                    const f = new THREE.Vector3(force.x, force.y, force.z);
+                    const torque = new THREE.Vector3().crossVectors(r, f);
+                    
+                    // Apply force and torque to xfrc_applied
+                    this.mjData.xfrc_applied[offset + 0] = force.x;
+                    this.mjData.xfrc_applied[offset + 1] = force.y;
+                    this.mjData.xfrc_applied[offset + 2] = force.z;
+                    this.mjData.xfrc_applied[offset + 3] = torque.x;
+                    this.mjData.xfrc_applied[offset + 4] = torque.y;
+                    this.mjData.xfrc_applied[offset + 5] = torque.z;
                 }
             }
         }
 
         if (this.runtime.params.impulse_remain_time > 0 && this.pelvisBodyId !== null) {
             const point = new THREE.Vector3();
-            getPosition(this.simulation.xpos, this.pelvisBodyId, point, false);
-            this.simulation.applyForce(
-                this.impulseForce.x,
-                this.impulseForce.y,
-                this.impulseForce.z,
-                0, 0, 0,
-                point.x, point.y, point.z,
-                this.pelvisBodyId
+            getPosition(this.mjData.xpos, this.pelvisBodyId, point, false);
+            
+            // Apply impulse force directly to xfrc_applied
+            const offset = this.pelvisBodyId * 6;
+            
+            // Get body position to compute torque
+            const bodyPos = new THREE.Vector3(
+                this.mjData.xpos[this.pelvisBodyId * 3],
+                this.mjData.xpos[this.pelvisBodyId * 3 + 1],
+                this.mjData.xpos[this.pelvisBodyId * 3 + 2]
             );
+            
+            // Compute torque: r × F
+            const r = new THREE.Vector3(point.x - bodyPos.x, point.y - bodyPos.y, point.z - bodyPos.z);
+            const f = new THREE.Vector3(this.impulseForce.x, this.impulseForce.y, this.impulseForce.z);
+            const torque = new THREE.Vector3().crossVectors(r, f);
+            
+            // Apply force and torque
+            this.mjData.xfrc_applied[offset + 0] = this.impulseForce.x;
+            this.mjData.xfrc_applied[offset + 1] = this.impulseForce.y;
+            this.mjData.xfrc_applied[offset + 2] = this.impulseForce.z;
+            this.mjData.xfrc_applied[offset + 3] = torque.x;
+            this.mjData.xfrc_applied[offset + 4] = torque.y;
+            this.mjData.xfrc_applied[offset + 5] = torque.z;
+            
             this.runtime.params.impulse_remain_time -= this.runtime.timestep;
         }
     }

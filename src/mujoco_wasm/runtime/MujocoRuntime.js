@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from '../node_modules/three/examples/jsm/controls/OrbitControls.js';
 import { downloadExampleScenesFolder, getPosition, getQuaternion, loadSceneFromURL } from './utils/mujocoScene.js';
-import { ONNXModule } from '../examples/onnxHelper.js';
+import { ONNXModule } from './utils/onnxHelper.js';
 import { TrajectoryActionManager } from './managers/actions/TrajectoryActionManager.js';
 
 const DEFAULT_CONTAINER_ID = 'mujoco-container';
@@ -90,9 +90,8 @@ export class MujocoRuntime {
             }
         };
 
-        this.model = null;
-        this.state = null;
-        this.simulation = null;
+        this.mjModel = null;
+        this.mjData = null;
         this.policy = null;
         this.inputDict = null;
         this.loopHandle = null;
@@ -182,7 +181,7 @@ export class MujocoRuntime {
 
     async loadScene(mjcfPath, metaPath) {
         this.scene.remove(this.scene.getObjectByName('MuJoCo Root'));
-        [this.model, this.state, this.simulation, this.bodies, this.lights] =
+        [this.mjModel, this.mjData, this.bodies, this.lights] =
             await loadSceneFromURL(this.mujoco, mjcfPath, this);
 
         let assetMeta = null;
@@ -191,7 +190,7 @@ export class MujocoRuntime {
             assetMeta = await response.json();
         }
 
-        this.timestep = this.model.getOptions().timestep;
+        this.timestep = this.mjModel.opt.timestep;
         this.decimation = Math.round(0.02 / this.timestep);
         this.mujoco_time = 0.0;
         this.simStepCount = 0;
@@ -200,16 +199,16 @@ export class MujocoRuntime {
 
         if (this.actionManager && typeof this.actionManager.onSceneLoaded === 'function') {
             await this.actionManager.onSceneLoaded({
-                model: this.model,
-                simulation: this.simulation,
+                mjModel: this.mjModel,
+                mjData: this.mjData,
                 assetMeta,
             });
         }
         for (const manager of this.envManagers) {
             if (typeof manager.onSceneLoaded === 'function') {
                 await manager.onSceneLoaded({
-                    model: this.model,
-                    simulation: this.simulation,
+                    mjModel: this.mjModel,
+                    mjData: this.mjData,
                     assetMeta,
                 });
             }
@@ -222,12 +221,21 @@ export class MujocoRuntime {
             await new Promise(resolve => setTimeout(resolve, 10));
         }
 
-        const response = await fetch(policyPath);
-        const config = await response.json();
+        let config;
+        try {
+            const response = await fetch(policyPath);
+            config = await response.json();
 
-        this.policyConfig = config;
-        this.policy = new ONNXModule(config.onnx);
-        await this.policy.init();
+            console.log('[MujocoRuntime] Loading policy from config:', config);
+            this.policyConfig = config;
+            this.policy = new ONNXModule(config.onnx);
+            console.log('[MujocoRuntime] ONNXModule created, calling init...');
+            await this.policy.init();
+            console.log('[MujocoRuntime] Policy initialized successfully, session:', this.policy.session);
+        } catch (error) {
+            console.error('[MujocoRuntime] Failed to load policy:', error);
+            throw error;
+        }
 
         if (this.actionManager && typeof this.actionManager.onPolicyLoaded === 'function') {
             await this.actionManager.onPolicyLoaded({ config });
@@ -236,8 +244,8 @@ export class MujocoRuntime {
             if (typeof manager.onPolicyLoaded === 'function') {
                 await manager.onPolicyLoaded({
                     config,
-                    model: this.model,
-                    simulation: this.simulation,
+                    mjModel: this.mjModel,
+                    mjData: this.mjData,
                     assetMeta: this.observationContext?.assetMeta,
                 });
             }
@@ -246,15 +254,15 @@ export class MujocoRuntime {
             if (typeof manager.onPolicyLoaded === 'function') {
                 await manager.onPolicyLoaded({
                     config,
-                    model: this.model,
-                    simulation: this.simulation,
+                    mjModel: this.mjModel,
+                    mjData: this.mjData,
                     assetMeta: this.observationContext?.assetMeta,
                 });
             }
         }
 
-        this.simulation.resetData();
-        this.simulation.forward();
+        this.mujoco.mj_resetData(this.mjModel, this.mjData);
+        this.mujoco.mj_forward(this.mjModel, this.mjData);
 
         this.adapt_hx = new Float32Array(128);
         this.rpy = new THREE.Euler();
@@ -287,7 +295,7 @@ export class MujocoRuntime {
         this.inputDict = this.inputDict || (this.policy ? this.policy.initInput() : {});
         while (this.running) {
             const loopStart = performance.now();
-            const ready = !this.params.paused && this.model && this.state && this.simulation;
+            const ready = !this.params.paused && this.mjModel && this.mjData;
             if (ready) {
                 if (this.actionManager instanceof TrajectoryActionManager) {
                     const obsTensors = await this.collectObservations();
@@ -297,7 +305,7 @@ export class MujocoRuntime {
                     this.updateCachedState();
                 } else if (this.policy) {
                     let time_start = performance.now();
-                    const quat = this.simulation.qpos.subarray(3, 7);
+                    const quat = this.mjData.qpos.subarray(3, 7);
                     this.quat.set(quat[1], quat[2], quat[3], quat[0]);
                     this.rpy.setFromQuaternion(this.quat);
 
@@ -341,10 +349,10 @@ export class MujocoRuntime {
     }
 
     applyAction(action) {
-        if (!this.simulation || !this.simulation.ctrl) {
+        if (!this.mjData || !this.mjData.ctrl) {
             return;
         }
-        const ctrl = this.simulation.ctrl;
+        const ctrl = this.mjData.ctrl;
         if (!action || typeof action.length !== 'number') {
             ctrl.fill(0);
             return;
@@ -361,8 +369,8 @@ export class MujocoRuntime {
     async executeSimulationSteps() {
         for (let substep = 0; substep < this.decimation; substep++) {
             const stepContext = {
-                model: this.model,
-                simulation: this.simulation,
+                mjModel: this.mjModel,
+                mjData: this.mjData,
                 timestep: this.timestep,
                 substep,
             };
@@ -375,7 +383,7 @@ export class MujocoRuntime {
                 }
             }
 
-            this.simulation.step();
+            this.mujoco.mj_step(this.mjModel, this.mjData);
             this.mujoco_time += this.timestep * 1000.0;
             this.simStepCount += 1;
 
@@ -398,8 +406,8 @@ export class MujocoRuntime {
         for (const manager of this.observationManagers) {
             if (typeof manager.collect === 'function') {
                 const result = manager.collect({
-                    model: this.model,
-                    simulation: this.simulation,
+                    mjModel: this.mjModel,
+                    mjData: this.mjData,
                     policyConfig: this.policyConfig,
                     params: this.params,
                 });
@@ -416,6 +424,14 @@ export class MujocoRuntime {
         this.isInferencing = true;
         this.inferenceStepCount += 1;
         try {
+            if (!this.policy.inKeys) {
+                console.error('[MujocoRuntime] Policy inKeys is undefined!', {
+                    policy: this.policy,
+                    inKeys: this.policy.inKeys,
+                    session: this.policy.session,
+                    metaData: this.policy.metaData
+                });
+            }
             const [result, carry] = await this.policy.runInference(this.inputDict);
             if (this.actionManager && typeof this.actionManager.onPolicyOutput === 'function') {
                 this.actionManager.onPolicyOutput(result);
@@ -427,10 +443,10 @@ export class MujocoRuntime {
     }
 
     updateCachedState() {
-        if (!this.model || !this.simulation) {
+        if (!this.mjModel || !this.mjData) {
             return;
         }
-        for (let b = 0; b < this.model.nbody; b++) {
+        for (let b = 0; b < this.mjModel.nbody; b++) {
             if (this.bodies[b]) {
                 if (!this.lastSimState.bodies.has(b)) {
                     this.lastSimState.bodies.set(b, {
@@ -438,12 +454,12 @@ export class MujocoRuntime {
                         quaternion: new THREE.Quaternion()
                     });
                 }
-                getPosition(this.simulation.xpos, b, this.lastSimState.bodies.get(b).position);
-                getQuaternion(this.simulation.xquat, b, this.lastSimState.bodies.get(b).quaternion);
+                getPosition(this.mjData.xpos, b, this.lastSimState.bodies.get(b).position);
+                getQuaternion(this.mjData.xquat, b, this.lastSimState.bodies.get(b).quaternion);
             }
         }
 
-        for (let l = 0; l < this.model.nlight; l++) {
+        for (let l = 0; l < this.mjModel.nlight; l++) {
             if (this.lights[l]) {
                 if (!this.lastSimState.lights.has(l)) {
                     this.lastSimState.lights.set(l, {
@@ -451,8 +467,8 @@ export class MujocoRuntime {
                         direction: new THREE.Vector3()
                     });
                 }
-                getPosition(this.simulation.light_xpos, l, this.lastSimState.lights.get(l).position);
-                getPosition(this.simulation.light_xdir, l, this.lastSimState.lights.get(l).direction);
+                getPosition(this.mjData.light_xpos, l, this.lastSimState.lights.get(l).position);
+                getPosition(this.mjData.light_xdir, l, this.lastSimState.lights.get(l).direction);
             }
         }
 
@@ -460,12 +476,12 @@ export class MujocoRuntime {
             let numWraps = 0;
             const mat = this.lastSimState.tendons.matrix;
 
-            for (let t = 0; t < this.model.ntendon; t++) {
-                let startW = this.simulation.ten_wrapadr[t];
-                let r = this.model.tendon_width[t];
-                for (let w = startW; w < startW + this.simulation.ten_wrapnum[t] - 1; w++) {
-                    let tendonStart = getPosition(this.simulation.wrap_xpos, w, new THREE.Vector3());
-                    let tendonEnd = getPosition(this.simulation.wrap_xpos, w + 1, new THREE.Vector3());
+            for (let t = 0; t < this.mjModel.ntendon; t++) {
+                let startW = this.mjData.ten_wrapadr[t];
+                let r = this.mjModel.tendon_width[t];
+                for (let w = startW; w < startW + this.mjData.ten_wrapnum[t] - 1; w++) {
+                    let tendonStart = getPosition(this.mjData.wrap_xpos, w, new THREE.Vector3());
+                    let tendonEnd = getPosition(this.mjData.wrap_xpos, w + 1, new THREE.Vector3());
                     let tendonAvg = new THREE.Vector3().addVectors(tendonStart, tendonEnd).multiplyScalar(0.5);
 
                     let validStart = tendonStart.length() > 0.01;
@@ -491,7 +507,7 @@ export class MujocoRuntime {
     }
 
     render() {
-        if (!this.model || !this.state || !this.simulation) {
+        if (!this.mjModel || !this.mjData) {
             return;
         }
 
@@ -538,12 +554,12 @@ export class MujocoRuntime {
     }
 
     async reset() {
-        if (!this.simulation) {
+        if (!this.mjData) {
             return;
         }
         this.params.paused = true;
-        this.simulation.resetData();
-        this.simulation.forward();
+        this.mujoco.mj_resetData(this.mjModel, this.mjData);
+        this.mujoco.mj_forward(this.mjModel, this.mjData);
         this.params.paused = false;
         if (this.commandManager && typeof this.commandManager.reset === 'function') {
             this.commandManager.reset();
@@ -571,29 +587,21 @@ export class MujocoRuntime {
         this.inputDict = null;
         
         // Free WebAssembly objects in correct order
-        if (this.simulation) {
+        if (this.mjData) {
             try {
-                this.simulation.free();
+                this.mjData.delete();
             } catch (e) {
-                console.warn('Failed to free simulation:', e);
+                console.warn('Failed to delete mjData:', e);
             }
-            this.simulation = null;
+            this.mjData = null;
         }
-        if (this.state) {
+        if (this.mjModel) {
             try {
-                this.state.free();
+                this.mjModel.delete();
             } catch (e) {
-                console.warn('Failed to free state:', e);
+                console.warn('Failed to delete mjModel:', e);
             }
-            this.state = null;
-        }
-        if (this.model) {
-            try {
-                this.model.free();
-            } catch (e) {
-                console.warn('Failed to free model:', e);
-            }
-            this.model = null;
+            this.mjModel = null;
         }
         
         // Dispose Three.js scene objects

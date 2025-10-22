@@ -12,8 +12,8 @@ export class TrajectoryActionManager extends BaseManager {
         super();
         this.options = options;
         this.runtime = null;
-        this.model = null;
-        this.simulation = null;
+        this.mjModel = null;
+        this.mjData = null;
         this.assetMeta = null;
         this.trajectory = null;
         this.currentFrame = 0;
@@ -41,11 +41,11 @@ export class TrajectoryActionManager extends BaseManager {
         console.log('TrajectoryActionManager initialized');
     }
 
-    async onSceneLoaded({ model, simulation, assetMeta }) {
-        this.model = model;
-        this.simulation = simulation;
+    async onSceneLoaded({ mjModel, mjData, assetMeta }) {
+        this.mjModel = mjModel;
+        this.mjData = mjData;
         this.assetMeta = assetMeta ?? null;
-        this.numActuators = typeof model?.nu === 'number' ? model.nu : 0;
+        this.numActuators = typeof this.mjModel?.nu === 'number' ? this.mjModel.nu : 0;
         this.commandBuffer = new Float32Array(this.numActuators);
         this.zeroAction = new Float32Array(this.numActuators);
         this.buildJointMappings();
@@ -63,7 +63,7 @@ export class TrajectoryActionManager extends BaseManager {
         this.qposAdr = [];
         this.qvelAdr = [];
         this.jointNames = [];
-        if (!this.model) {
+        if (!this.mjModel) {
             return;
         }
 
@@ -73,7 +73,7 @@ export class TrajectoryActionManager extends BaseManager {
         if (Array.isArray(jointNames) && jointNames.length > 0 && mujoco) {
             for (const jointName of jointNames) {
                 const jointId = mujoco.mj_name2id(
-                    this.model,
+                    this.mjModel,
                     mujoco.mjtObj.mjOBJ_JOINT,
                     jointName
                 );
@@ -87,20 +87,20 @@ export class TrajectoryActionManager extends BaseManager {
                     continue;
                 }
                 this.ctrlAdr.push(actuatorIndex);
-                this.qposAdr.push(this.model.jnt_qposadr[jointId]);
-                this.qvelAdr.push(this.model.jnt_dofadr[jointId]);
+                this.qposAdr.push(this.mjModel.jnt_qposadr[jointId]);
+                this.qvelAdr.push(this.mjModel.jnt_dofadr[jointId]);
                 this.jointNames.push(jointName);
             }
         } else {
             // Fallback: assume actuators align with joints defined in actuator_trnid
             for (let actuatorIndex = 0; actuatorIndex < this.numActuators; actuatorIndex++) {
-                const jointId = this.model.actuator_trnid[2 * actuatorIndex];
+                const jointId = this.mjModel.actuator_trnid[2 * actuatorIndex];
                 if (typeof jointId !== 'number' || jointId < 0) {
                     continue;
                 }
                 this.ctrlAdr.push(actuatorIndex);
-                this.qposAdr.push(this.model.jnt_qposadr[jointId]);
-                this.qvelAdr.push(this.model.jnt_dofadr[jointId]);
+                this.qposAdr.push(this.mjModel.jnt_qposadr[jointId]);
+                this.qvelAdr.push(this.mjModel.jnt_dofadr[jointId]);
                 const jointName = this.getJointNameFromId(jointId) ?? `joint_${actuatorIndex}`;
                 this.jointNames.push(jointName);
             }
@@ -108,11 +108,11 @@ export class TrajectoryActionManager extends BaseManager {
     }
 
     findActuatorIndexForJoint(jointId) {
-        if (!this.model) {
+        if (!this.mjModel) {
             return -1;
         }
-        for (let i = 0; i < this.model.nu; i++) {
-            const mappedJointId = this.model.actuator_trnid[2 * i];
+        for (let i = 0; i < this.mjModel.nu; i++) {
+            const mappedJointId = this.mjModel.actuator_trnid[2 * i];
             if (mappedJointId === jointId) {
                 return i;
             }
@@ -121,14 +121,14 @@ export class TrajectoryActionManager extends BaseManager {
     }
 
     getJointNameFromId(jointId) {
-        if (!this.model || typeof jointId !== 'number' || jointId < 0) {
+        if (!this.mjModel || typeof jointId !== 'number' || jointId < 0) {
             return null;
         }
         if (!this.textDecoder) {
             this.textDecoder = new TextDecoder();
         }
-        const namesArray = new Uint8Array(this.model.names);
-        const startIdx = this.model.name_jntadr[jointId];
+        const namesArray = new Uint8Array(this.mjModel.names);
+        const startIdx = this.mjModel.name_jntadr[jointId];
         if (typeof startIdx !== 'number') {
             return null;
         }
@@ -217,7 +217,7 @@ export class TrajectoryActionManager extends BaseManager {
     computePDControl(targetQpos, targetQvel) {
         const action = this.commandBuffer;
         action.fill(0);
-        if (!this.simulation || !Array.isArray(this.ctrlAdr) || this.ctrlAdr.length === 0) {
+        if (!this.mjData || !Array.isArray(this.ctrlAdr) || this.ctrlAdr.length === 0) {
             return action;
         }
         for (let i = 0; i < this.ctrlAdr.length; i++) {
@@ -233,8 +233,8 @@ export class TrajectoryActionManager extends BaseManager {
             if (typeof targetPos !== 'number' || typeof qposIndex !== 'number' || typeof qvelIndex !== 'number') {
                 continue;
             }
-            const currentPos = this.simulation.qpos[qposIndex];
-            const currentVel = this.simulation.qvel[qvelIndex];
+            const currentPos = this.mjData.qpos[qposIndex];
+            const currentVel = this.mjData.qvel[qvelIndex];
             const posError = targetPos - currentPos;
             const velError = targetVel - currentVel;
             action[ctrlIndex] = this.pdGains.kp * posError + this.pdGains.kd * velError;
@@ -243,7 +243,7 @@ export class TrajectoryActionManager extends BaseManager {
     }
 
     async generateAction(_observations) {
-        if (!this.model || !this.simulation) {
+        if (!this.mjModel || !this.mjData) {
             return this.zeroAction;
         }
         const targetState = this.getCurrentTargetState();
@@ -295,8 +295,8 @@ export class TrajectoryActionManager extends BaseManager {
         this.reset();
         this.trajectory = null;
         this.runtime = null;
-        this.model = null;
-        this.simulation = null;
+        this.mjModel = null;
+        this.mjData = null;
         this.assetMeta = null;
         this.ctrlAdr = [];
         this.qposAdr = [];
