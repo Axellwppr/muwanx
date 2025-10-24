@@ -10,16 +10,8 @@
     },
     {
       "id": "2",
-      "name": "Bimanual",
-      "model_xml": "./examples/scenes/myosuite/myosuite/envs/myo/assets/arm/myoarm_bionic_bimanual.xml",
-      "asset_meta": null,
-      "default_policy": null,
-      "policies": []
-    },
-    {
-      "id": "3",
-      "name": "Soccer",
-      "model_xml": "./examples/scenes/myosuite/myosuite/envs/myo/assets/leg_soccer/myolegs_soccer.xml",
+      "name": "MyoArm",
+      "model_xml": "./examples/scenes/myosuite/myosuite/simhive/myo_sim/arm/myoarm.xml",
       "asset_meta": null,
       "default_policy": null,
       "policies": []

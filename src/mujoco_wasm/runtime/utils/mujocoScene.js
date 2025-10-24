@@ -3,7 +3,7 @@ import { Reflector } from './Reflector.js';
 import { mujocoAssetCollector } from '../../utils/mujocoAssetCollector.js';
 
 const SCENE_BASE_URL = './';
-const BINARY_EXTENSIONS = ['.png', '.stl', '.skn', '.mjb'];
+const BINARY_EXTENSIONS = ['.png', '.stl', '.skn', '.mjb', '.msh', '.npy'];
 const sceneDownloadPromises = new Map();
 
 function isBinaryAsset(path) {
@@ -22,6 +22,52 @@ function ensureWorkingDirectories(mujoco, segments) {
             mujoco.FS.mkdir(working);
         }
     }
+}
+
+function normalizePathSegments(path) {
+    if (!path) {
+        return '';
+    }
+    const parts = path.split('/');
+    const resolved = [];
+    for (const part of parts) {
+        if (!part || part === '.') {
+            continue;
+        }
+        if (part === '..') {
+            if (resolved.length) {
+                resolved.pop();
+            }
+            continue;
+        }
+        resolved.push(part);
+    }
+    return resolved.join('/');
+}
+
+function resolveAssetPath(xmlDirectory, assetPath) {
+    if (!assetPath) {
+        return null;
+    }
+
+    let cleaned = assetPath.trim();
+    if (!cleaned) {
+        return null;
+    }
+
+    cleaned = cleaned.replace(/^(\.\/)+/, '');
+    cleaned = cleaned.replace(/^public\//, '');
+    if (cleaned.startsWith('/')) {
+        cleaned = cleaned.slice(1);
+    }
+
+    const normalized = normalizePathSegments(cleaned);
+    if (normalized.startsWith('examples/')) {
+        return normalized;
+    }
+
+    const joined = normalizePathSegments(`${xmlDirectory}/${cleaned}`);
+    return joined || normalized || null;
 }
 
 export async function loadSceneFromURL(mujoco, filename, parent) {
@@ -195,11 +241,17 @@ export async function loadSceneFromURL(mujoco, filename, parent) {
         color: new THREE.Color(color[0], color[1], color[2]),
         transparent: color[3] < 1.0,
         opacity: color[3],
-        specularIntensity: mjModel.geom_matid[g] !== -1 ? mjModel.mat_specular[mjModel.geom_matid[g]] * 0.5 : undefined,
-        reflectivity: mjModel.geom_matid[g] !== -1 ? mjModel.mat_reflectance[mjModel.geom_matid[g]] : undefined,
-        roughness: mjModel.geom_matid[g] !== -1 ? 1.0 - mjModel.mat_shininess[mjModel.geom_matid[g]] : undefined,
-        metalness: mjModel.geom_matid[g] !== -1 ? 0.1 : undefined,
       };
+      if (mjModel.geom_matid[g] !== -1) {
+        const matIndex = mjModel.geom_matid[g];
+        const specularIntensity = mjModel.mat_specular[matIndex] * 0.5;
+        const reflectivity = mjModel.mat_reflectance[matIndex];
+        const roughness = 1.0 - mjModel.mat_shininess[matIndex];
+        materialConfig.specularIntensity = specularIntensity;
+        materialConfig.reflectivity = reflectivity;
+        materialConfig.roughness = roughness;
+        materialConfig.metalness = 0.1;
+      }
       if (texture) {
         materialConfig.map = texture;
       }
@@ -348,22 +400,22 @@ export async function downloadExampleScenesFolder(mujoco, scenePath) {
     }
 
     const downloadPromise = (async () => {
-        // Use the dynamic asset analyzer instead of index.json
+        // Use the dynamic asset collector instead of index.json
         let manifest;
         try {
             manifest = await mujocoAssetCollector.analyzeScene(scenePath, SCENE_BASE_URL);
             
             if (!Array.isArray(manifest)) {
-                throw new Error(`Asset analyzer returned invalid result (not an array): ${typeof manifest}`);
+                throw new Error(`Asset collector returned invalid result (not an array): ${typeof manifest}`);
             }
             
             if (manifest.length === 0) {
-                throw new Error('No assets found by analyzer');
+                throw new Error('No assets found by collector');
             }
             
         } catch (error) {
             
-            // Fallback to index.json if asset analyzer fails
+            // Fallback to index.json if asset collector fails
             try {
                 const manifestResponse = await fetch(`${SCENE_BASE_URL}/${xmlDirectory}/index.json`);
                 if (!manifestResponse.ok) {
@@ -379,16 +431,34 @@ export async function downloadExampleScenesFolder(mujoco, scenePath) {
         }
 
         // Filter out external URLs and process only local assets
-        const localAssets = manifest.filter(asset => 
-            typeof asset === 'string' && 
-            !asset.startsWith('http://') && 
-            !asset.startsWith('https://')
-        );
+        const localAssets = manifest
+            .filter(asset => 
+                typeof asset === 'string' && 
+                !asset.startsWith('http://') && 
+                !asset.startsWith('https://')
+            )
+            .map(originalPath => {
+                const normalizedPath = resolveAssetPath(xmlDirectory, originalPath);
+                if (!normalizedPath) {
+                    console.warn(`[downloadExampleScenesFolder] Skipping asset with unresolved path: ${originalPath}`);
+                    return null;
+                }
+                return { originalPath, normalizedPath };
+            })
+            .filter(Boolean);
 
-        const requests = localAssets.map(relativePath => {
-            const fullPath = relativePath.startsWith(xmlDirectory) 
-                ? `${SCENE_BASE_URL}/${relativePath}`
-                : `${SCENE_BASE_URL}/${xmlDirectory}/${relativePath}`;
+        const seenPaths = new Set();
+        const uniqueAssets = [];
+        for (const asset of localAssets) {
+            if (seenPaths.has(asset.normalizedPath)) {
+                continue;
+            }
+            seenPaths.add(asset.normalizedPath);
+            uniqueAssets.push(asset);
+        }
+
+        const requests = uniqueAssets.map(({ normalizedPath }) => {
+            const fullPath = `${SCENE_BASE_URL}/${normalizedPath}`;
             return fetch(fullPath);
         });
         
@@ -396,25 +466,20 @@ export async function downloadExampleScenesFolder(mujoco, scenePath) {
 
         for (let i = 0; i < responses.length; i++) {
             const response = responses[i];
-            const relativePath = localAssets[i];
+            const { originalPath, normalizedPath } = uniqueAssets[i];
             
             if (!response.ok) {
-                console.warn(`[downloadExampleScenesFolder] Failed to fetch scene asset ${relativePath}: ${response.status}`);
+                console.warn(`[downloadExampleScenesFolder] Failed to fetch scene asset ${originalPath}: ${response.status}`);
                 continue; // Skip missing assets but don't fail the whole download
             }
 
-            // Determine the correct asset path
-            const assetPath = relativePath.startsWith(xmlDirectory) 
-                ? relativePath
-                : `${xmlDirectory}/${relativePath}`;
-            
-                
+            const assetPath = normalizedPath;
             const segments = assetPath.split('/');
             ensureWorkingDirectories(mujoco, segments.slice(0, -1));
 
             const targetPath = `/working/${assetPath}`;
             try {
-                if (isBinaryAsset(relativePath)) {
+                if (isBinaryAsset(normalizedPath) || isBinaryAsset(originalPath)) {
                     const arrayBuffer = await response.arrayBuffer();
                     mujoco.FS.writeFile(targetPath, new Uint8Array(arrayBuffer));
                 } else {
