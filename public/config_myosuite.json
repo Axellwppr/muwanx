@@ -15,6 +15,30 @@
       "asset_meta": null,
       "default_policy": null,
       "policies": []
+    },
+    {
+      "id": "3",
+      "name": "MyoLegs",
+      "model_xml": "./examples/scenes/myosuite/myosuite/simhive/myo_sim/leg/myolegs.xml",
+      "asset_meta": null,
+      "default_policy": null,
+      "policies": []
+    },
+    {
+      "id": "4",
+      "name": "MyoHand",
+      "model_xml": "./examples/scenes/myosuite/myosuite/simhive/myo_sim/hand/myohand.xml",
+      "asset_meta": null,
+      "default_policy": null,
+      "policies": []
+    },
+    {
+      "id": "5",
+      "name": "Bimanual",
+      "model_xml": "public/examples/scenes/myosuite/myosuite/envs/myo/assets/arm/myoarm_bionic_bimanual.xml",
+      "asset_meta": null,
+      "default_policy": null,
+      "policies": []
     }
   ]
 }

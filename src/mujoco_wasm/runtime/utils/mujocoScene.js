@@ -5,6 +5,8 @@ import { mujocoAssetCollector } from '../../utils/mujocoAssetCollector.js';
 const SCENE_BASE_URL = './';
 const BINARY_EXTENSIONS = ['.png', '.stl', '.skn', '.mjb', '.msh', '.npy'];
 const sceneDownloadPromises = new Map();
+const GLOBAL_LIGHT_INTENSITY_MULTIPLIER = 2.6;
+const GLOBAL_AMBIENT_INTENSITY = 0.35;
 
 function isBinaryAsset(path) {
     const lower = path.toLowerCase();
@@ -70,6 +72,233 @@ function resolveAssetPath(xmlDirectory, assetPath) {
     return joined || normalized || null;
 }
 
+function floatsAlmostEqual(a, b, epsilon = 1e-5) {
+    return Math.abs((a ?? 0) - (b ?? 0)) <= epsilon;
+}
+
+function colorsAlmostEqual(a, b, epsilon = 1e-5) {
+    if (!a || !b) {
+        return false;
+    }
+    for (let i = 0; i < 4; i++) {
+        if (!floatsAlmostEqual(a[i], b[i], epsilon)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+function getGeomColor(mjModel, geomIndex) {
+    if (!mjModel.geom_rgba || mjModel.geom_rgba.length < ((geomIndex * 4) + 4)) {
+        return [1, 1, 1, 1];
+    }
+    return [
+        mjModel.geom_rgba[(geomIndex * 4) + 0],
+        mjModel.geom_rgba[(geomIndex * 4) + 1],
+        mjModel.geom_rgba[(geomIndex * 4) + 2],
+        mjModel.geom_rgba[(geomIndex * 4) + 3]
+    ];
+}
+
+function getMatColor(mjModel, matId) {
+    if (!mjModel.mat_rgba || mjModel.mat_rgba.length < ((matId * 4) + 4)) {
+        return [1, 1, 1, 1];
+    }
+    return [
+        mjModel.mat_rgba[(matId * 4) + 0],
+        mjModel.mat_rgba[(matId * 4) + 1],
+        mjModel.mat_rgba[(matId * 4) + 2],
+        mjModel.mat_rgba[(matId * 4) + 3]
+    ];
+}
+
+function createBaseTexture(mjModel, texId) {
+    if (!mjModel || texId < 0) {
+        return null;
+    }
+
+    const width = mjModel.tex_width ? mjModel.tex_width[texId] : 0;
+    const height = mjModel.tex_height ? mjModel.tex_height[texId] : 0;
+    if (!width || !height) {
+        return null;
+    }
+
+    const texAdr = mjModel.tex_adr ? mjModel.tex_adr[texId] : 0;
+    const pixelCount = width * height;
+
+    let textureData = new Uint8Array(pixelCount * 4);
+
+    if (mjModel.tex_rgba && mjModel.tex_rgba.length >= ((texAdr + pixelCount) * 4)) {
+        const rgbaSource = mjModel.tex_rgba.subarray(texAdr * 4, (texAdr * 4) + (pixelCount * 4));
+        textureData.set(rgbaSource);
+    } else if (mjModel.tex_rgb && mjModel.tex_rgb.length >= ((texAdr + pixelCount) * 3)) {
+        const rgbSource = mjModel.tex_rgb.subarray(texAdr * 3, (texAdr * 3) + (pixelCount * 3));
+        for (let src = 0, dst = 0; src < rgbSource.length; src += 3, dst += 4) {
+            textureData[dst + 0] = rgbSource[src + 0];
+            textureData[dst + 1] = rgbSource[src + 1];
+            textureData[dst + 2] = rgbSource[src + 2];
+            textureData[dst + 3] = 255;
+        }
+    } else {
+        return null;
+    }
+
+    const texture = new THREE.DataTexture(textureData, width, height, THREE.RGBAFormat, THREE.UnsignedByteType);
+    texture.needsUpdate = true;
+    texture.flipY = false;
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(1, 1);
+    texture.anisotropy = 4;
+    return texture;
+}
+
+function getBaseTexture(textureCache, mjModel, texId) {
+    if (texId < 0) {
+        return null;
+    }
+    if (textureCache.has(texId)) {
+        return textureCache.get(texId);
+    }
+    const baseTexture = createBaseTexture(mjModel, texId);
+    if (baseTexture) {
+        textureCache.set(texId, baseTexture);
+    }
+    return baseTexture;
+}
+
+function buildMaterialFromMatId(mjModel, matId, textureCache) {
+    const matColor = getMatColor(mjModel, matId);
+
+    const materialConfig = {
+        color: new THREE.Color(matColor[0], matColor[1], matColor[2]),
+        transparent: matColor[3] < 0.999,
+        opacity: matColor[3],
+        roughness: 1.0,
+        metalness: 0.0,
+    };
+
+    if (mjModel.mat_specular && mjModel.mat_specular.length > matId) {
+        const specular = mjModel.mat_specular[matId];
+        materialConfig.specularIntensity = specular;
+    }
+
+    if (mjModel.mat_reflectance && mjModel.mat_reflectance.length > matId) {
+        const reflectance = mjModel.mat_reflectance[matId];
+        materialConfig.reflectivity = reflectance;
+        materialConfig.metalness = THREE.MathUtils.clamp(reflectance, 0, 1);
+    }
+
+    if (mjModel.mat_shininess && mjModel.mat_shininess.length > matId) {
+        const shininess = mjModel.mat_shininess[matId];
+        materialConfig.roughness = THREE.MathUtils.clamp(1.0 - shininess, 0.0, 1.0);
+    }
+
+    if (mjModel.mat_emission && mjModel.mat_emission.length > matId) {
+        const emission = mjModel.mat_emission[matId];
+        if (emission > 0) {
+            materialConfig.emissive = new THREE.Color(matColor[0], matColor[1], matColor[2]);
+            materialConfig.emissiveIntensity = emission;
+        }
+    }
+
+    const texId = (mjModel.mat_texid && mjModel.mat_texid.length > matId) ? mjModel.mat_texid[matId] : -1;
+    if (typeof texId === 'number' && texId >= 0) {
+        const baseTexture = getBaseTexture(textureCache, mjModel, texId);
+        if (baseTexture) {
+            const texture = baseTexture.clone();
+            texture.needsUpdate = true;
+
+            if (mjModel.mat_texrepeat && mjModel.mat_texrepeat.length >= ((matId * 2) + 2)) {
+                const repeatU = mjModel.mat_texrepeat[(matId * 2) + 0] || 1;
+                const repeatV = mjModel.mat_texrepeat[(matId * 2) + 1] || 1;
+                texture.repeat.set(repeatU, repeatV);
+            }
+
+            if (mjModel.mat_texoffset && mjModel.mat_texoffset.length >= ((matId * 2) + 2)) {
+                const offsetU = mjModel.mat_texoffset[(matId * 2) + 0] || 0;
+                const offsetV = mjModel.mat_texoffset[(matId * 2) + 1] || 0;
+                texture.offset.set(offsetU, offsetV);
+            }
+
+            if (mjModel.mat_texuniform && mjModel.mat_texuniform.length > matId) {
+                const uniform = mjModel.mat_texuniform[matId];
+                if (uniform) {
+                    texture.wrapS = THREE.ClampToEdgeWrapping;
+                    texture.wrapT = THREE.ClampToEdgeWrapping;
+                } else {
+                    texture.wrapS = THREE.RepeatWrapping;
+                    texture.wrapT = THREE.RepeatWrapping;
+                }
+            } else {
+                texture.wrapS = THREE.RepeatWrapping;
+                texture.wrapT = THREE.RepeatWrapping;
+            }
+
+            if (mjModel.mat_texrotate && mjModel.mat_texrotate.length > matId) {
+                const rotation = mjModel.mat_texrotate[matId];
+                if (rotation) {
+                    texture.center.set(0.5, 0.5);
+                    texture.rotation = rotation;
+                }
+            }
+
+            materialConfig.map = texture;
+        }
+    }
+
+    const material = new THREE.MeshPhysicalMaterial(materialConfig);
+    material.userData = {
+        ...(material.userData || {}),
+        matId,
+        matColor: matColor.slice(),
+        matOpacity: matColor[3],
+        baseTextureId: (typeof texId === 'number' && texId >= 0) ? texId : null,
+    };
+    return material;
+}
+
+function buildColorOnlyMaterial(colorArray) {
+    const material = new THREE.MeshPhysicalMaterial({
+        color: new THREE.Color(colorArray[0], colorArray[1], colorArray[2]),
+        transparent: colorArray[3] < 0.999,
+        opacity: colorArray[3],
+        roughness: 0.9,
+        metalness: 0.0,
+    });
+    material.userData = {
+        ...(material.userData || {}),
+        matColor: colorArray.slice(),
+        matOpacity: colorArray[3],
+    };
+    return material;
+}
+
+function applyGeomColorOverride(material, geomColor) {
+    if (!material || !geomColor) {
+        return material;
+    }
+
+    const baseColor = material.userData?.matColor;
+    if (baseColor && colorsAlmostEqual(baseColor, geomColor)) {
+        return material;
+    }
+
+    const cloned = material.clone();
+    cloned.color = new THREE.Color(geomColor[0], geomColor[1], geomColor[2]);
+    cloned.transparent = geomColor[3] < 0.999;
+    cloned.opacity = geomColor[3];
+    cloned.userData = {
+        ...(material.userData || {}),
+        matColor: geomColor.slice(),
+        matOpacity: geomColor[3],
+    };
+    if (material.map) {
+        cloned.map = material.map;
+    }
+    return cloned;
+}
+
 export async function loadSceneFromURL(mujoco, filename, parent) {
   if (parent.mjData != null) {
     parent.mjData.delete();
@@ -96,9 +325,25 @@ export async function loadSceneFromURL(mujoco, filename, parent) {
   let bodies = {};
   let meshes = {};
   let lights = [];
+  let dynamicLightCount = 0;
+  const globalFillLight = new THREE.HemisphereLight(
+    new THREE.Color(0.95, 0.95, 1.0),
+    new THREE.Color(0.35, 0.35, 0.35),
+    GLOBAL_AMBIENT_INTENSITY
+  );
+  mujocoRoot.add(globalFillLight);
+  lights.push(globalFillLight);
+  const textureCache = new Map();
+  const materialCache = new Map();
 
-  let material = new THREE.MeshPhysicalMaterial();
-  material.color = new THREE.Color(1, 1, 1);
+  const getMaterialForMatId = (matId) => {
+    if (materialCache.has(matId)) {
+      return materialCache.get(matId);
+    }
+    const mat = buildMaterialFromMatId(mjModel, matId, textureCache);
+    materialCache.set(matId, mat);
+    return mat;
+  };
 
   for (let g = 0; g < mjModel.ngeom; g++) {
     if (!(mjModel.geom_group[g] < 3)) { continue; }
@@ -187,87 +432,32 @@ export async function loadSceneFromURL(mujoco, filename, parent) {
       bodies[b].has_custom_mesh = true;
     }
 
-    let texture;
-    let color = [
-      mjModel.geom_rgba[(g * 4) + 0],
-      mjModel.geom_rgba[(g * 4) + 1],
-      mjModel.geom_rgba[(g * 4) + 2],
-      mjModel.geom_rgba[(g * 4) + 3]
-    ];
-    if (mjModel.geom_matid[g] !== -1) {
-      let matId = mjModel.geom_matid[g];
-      color = [
-        mjModel.mat_rgba[(matId * 4) + 0],
-        mjModel.mat_rgba[(matId * 4) + 1],
-        mjModel.mat_rgba[(matId * 4) + 2],
-        mjModel.mat_rgba[(matId * 4) + 3]
-      ];
-
-      texture = undefined;
-      let texId = mjModel.mat_texid[matId];
-      if (texId !== -1) {
-        let width = mjModel.tex_width[texId];
-        let height = mjModel.tex_height[texId];
-        let offset = mjModel.tex_adr[texId];
-        let rgbArray = mjModel.tex_rgb;
-        let rgbaArray = new Uint8Array(width * height * 4);
-        for (let p = 0; p < width * height; p++) {
-          rgbaArray[(p * 4) + 0] = rgbArray[offset + ((p * 3) + 0)];
-          rgbaArray[(p * 4) + 1] = rgbArray[offset + ((p * 3) + 1)];
-          rgbaArray[(p * 4) + 2] = rgbArray[offset + ((p * 3) + 2)];
-          rgbaArray[(p * 4) + 3] = 1.0;
-        }
-        texture = new THREE.DataTexture(rgbaArray, width, height, THREE.RGBAFormat, THREE.UnsignedByteType);
-        if (texId === 2) {
-          texture.repeat = new THREE.Vector2(50, 50);
-          texture.wrapS = THREE.RepeatWrapping;
-          texture.wrapT = THREE.RepeatWrapping;
-        } else {
-          texture.repeat = new THREE.Vector2(1, 1);
-          texture.wrapS = THREE.RepeatWrapping;
-          texture.wrapT = THREE.RepeatWrapping;
-        }
-
-        texture.needsUpdate = true;
-      }
+    const geomColor = getGeomColor(mjModel, g);
+    let materialInstance;
+    const matId = mjModel.geom_matid[g];
+    if (typeof matId === 'number' && matId >= 0) {
+      const baseMaterial = getMaterialForMatId(matId);
+      materialInstance = applyGeomColorOverride(baseMaterial, geomColor);
+    } else {
+      materialInstance = buildColorOnlyMaterial(geomColor);
     }
-
-    if (material.color.r !== color[0] ||
-      material.color.g !== color[1] ||
-      material.color.b !== color[2] ||
-      material.opacity !== color[3] ||
-      material.map !== texture) {
-      const materialConfig = {
-        color: new THREE.Color(color[0], color[1], color[2]),
-        transparent: color[3] < 1.0,
-        opacity: color[3],
-      };
-      if (mjModel.geom_matid[g] !== -1) {
-        const matIndex = mjModel.geom_matid[g];
-        const specularIntensity = mjModel.mat_specular[matIndex] * 0.5;
-        const reflectivity = mjModel.mat_reflectance[matIndex];
-        const roughness = 1.0 - mjModel.mat_shininess[matIndex];
-        materialConfig.specularIntensity = specularIntensity;
-        materialConfig.reflectivity = reflectivity;
-        materialConfig.roughness = roughness;
-        materialConfig.metalness = 0.1;
-      }
-      if (texture) {
-        materialConfig.map = texture;
-      }
-      material = new THREE.MeshPhysicalMaterial(materialConfig);
+    if (!materialInstance) {
+      materialInstance = buildColorOnlyMaterial([1, 1, 1, 1]);
     }
 
     let mesh;
     if (type === mujoco.mjtGeom.mjGEOM_PLANE.value) {
-      const reflectorOptions = { clipBias: 0.003 };
-      if (texture) {
-        reflectorOptions.texture = texture;
+      const planeWidth = (size[0] || 1) * 2;
+      const planeHeight = (size[1] || 1) * 2;
+      if (materialInstance?.map) {
+        mesh = new THREE.Mesh(new THREE.PlaneGeometry(planeWidth, planeHeight), materialInstance);
+      } else {
+        const reflectorOptions = { clipBias: 0.003 };
+        mesh = new Reflector(new THREE.PlaneGeometry(planeWidth, planeHeight), reflectorOptions);
       }
-      mesh = new Reflector(new THREE.PlaneGeometry(100, 100), reflectorOptions);
       mesh.rotateX(-Math.PI / 2);
     } else {
-      mesh = new THREE.Mesh(geometry, material);
+      mesh = new THREE.Mesh(geometry, materialInstance);
     }
 
     mesh.castShadow = g === 0 ? false : true;
@@ -295,37 +485,165 @@ export async function loadSceneFromURL(mujoco, filename, parent) {
   mujocoRoot.add(mujocoRoot.spheres);
 
   // Check if mjModel has light properties before accessing them
-  if (mjModel.nlight > 0 && mjModel.light_directional && mjModel.light_attenuation) {
+  if (mjModel.nlight > 0 && mjModel.light_pos) {
+    const lightPosBuffer = mjModel.light_pos;
+    const lightDirBuffer = mjModel.light_dir;
+    const lightDiffuseBuffer = mjModel.light_diffuse;
+    const lightAmbientBuffer = mjModel.light_ambient;
+    const lightSpecularBuffer = mjModel.light_specular;
+    const lightCutoffBuffer = mjModel.light_cutoff;
+    const lightExponentBuffer = mjModel.light_exponent;
+    const lightAttenuationBuffer = mjModel.light_attenuation;
+    const lightBodyBuffer = mjModel.light_bodyid;
+    const lightShadowBuffer = mjModel.light_castshadow;
+    const directionalFlags = mjModel.light_directional;
+
+    const tempPosition = new THREE.Vector3();
+    const tempDirection = new THREE.Vector3();
+
     for (let l = 0; l < mjModel.nlight; l++) {
-      let light = new THREE.SpotLight();
-      const isDirectional = mjModel.light_directional[l];
+      const isDirectional = directionalFlags ? !!directionalFlags[l] : false;
+      let light = null;
+      let useSpot = false;
+
+      let cutoffValue = (lightCutoffBuffer && lightCutoffBuffer.length > l) ? lightCutoffBuffer[l] : 0;
+      if (cutoffValue && cutoffValue <= Math.PI * 2) {
+        // If already radians, leave as-is; otherwise convert below
+      } else if (cutoffValue && cutoffValue > Math.PI * 2) {
+        cutoffValue = THREE.MathUtils.degToRad(cutoffValue);
+      }
+
       if (isDirectional) {
         light = new THREE.DirectionalLight();
       } else {
-        light = new THREE.SpotLight();
+        useSpot = cutoffValue > 0;
+        if (useSpot) {
+          light = new THREE.SpotLight();
+        } else {
+          light = new THREE.PointLight();
+        }
       }
-      const attenuation = mjModel.light_attenuation[l];
-      light.decay = attenuation * 100;
-      light.penumbra = 0.5;
-      light.castShadow = true;
+
+      const diffuseColor = (lightDiffuseBuffer && lightDiffuseBuffer.length >= ((l * 3) + 3))
+        ? [
+            lightDiffuseBuffer[(l * 3) + 0],
+            lightDiffuseBuffer[(l * 3) + 1],
+            lightDiffuseBuffer[(l * 3) + 2]
+          ]
+        : [1, 1, 1];
+      light.color.setRGB(diffuseColor[0], diffuseColor[1], diffuseColor[2]);
+      const diffuseIntensity = Math.max(0.01, (diffuseColor[0] + diffuseColor[1] + diffuseColor[2]) / 3);
+      light.intensity = diffuseIntensity * GLOBAL_LIGHT_INTENSITY_MULTIPLIER;
+
+      getPosition(lightPosBuffer, l, tempPosition);
+      light.position.copy(tempPosition);
+
+      if ((light.isSpotLight || light.isDirectionalLight) && lightDirBuffer && lightDirBuffer.length >= ((l * 3) + 3)) {
+        getPosition(lightDirBuffer, l, tempDirection);
+        if (tempDirection.lengthSq() > 0) {
+          tempDirection.normalize();
+          const targetOffset = tempDirection.clone();
+          const target = light.target || new THREE.Object3D();
+          target.position.copy(light.position.clone().add(targetOffset));
+          if (!target.parent) {
+            mujocoRoot.add(target);
+          }
+          light.target = target;
+          if (light.isDirectionalLight) {
+            light.target.position.copy(light.position.clone().add(tempDirection.multiplyScalar(10)));
+          }
+        }
+      }
+
+      if (light.isSpotLight) {
+        const angle = cutoffValue ? THREE.MathUtils.clamp(cutoffValue, 0.001, Math.PI / 2) : THREE.MathUtils.degToRad(45);
+        light.angle = angle;
+
+        const exponent = (lightExponentBuffer && lightExponentBuffer.length > l) ? lightExponentBuffer[l] : 0;
+        light.penumbra = THREE.MathUtils.clamp(exponent / 100, 0, 1);
+      }
+
+      if (!isDirectional && lightAttenuationBuffer) {
+        if (lightAttenuationBuffer.length >= ((l * 3) + 3)) {
+          const constant = lightAttenuationBuffer[(l * 3) + 0];
+          const linear = lightAttenuationBuffer[(l * 3) + 1];
+          const quadratic = lightAttenuationBuffer[(l * 3) + 2];
+          light.decay = Math.max(quadratic * 10, 0.0);
+          const falloff = Math.max(linear, 0);
+          if (falloff > 0) {
+            light.distance = 1.0 / falloff;
+          }
+          if (constant > 0 && !light.distance) {
+            light.distance = 1.0 / constant;
+          }
+        } else if (lightAttenuationBuffer.length > l) {
+          light.decay = Math.max(lightAttenuationBuffer[l] * 10, 0.0);
+        }
+      }
+
+      if (lightShadowBuffer && lightShadowBuffer.length > l) {
+        light.castShadow = !!lightShadowBuffer[l];
+      } else if (!isDirectional) {
+        light.castShadow = true;
+      }
 
       light.shadow.mapSize.width = 1024;
       light.shadow.mapSize.height = 1024;
-      light.shadow.camera.near = 1;
-      light.shadow.camera.far = 10;
-      if (bodies[0]) {
-        bodies[0].add(light);
-      } else {
-        mujocoRoot.add(light);
+      light.shadow.camera.near = 0.1;
+      light.shadow.camera.far = 25;
+      light.shadow.bias = -1e-4;
+
+      const bodyId = (lightBodyBuffer && lightBodyBuffer.length > l) ? lightBodyBuffer[l] : -1;
+      const parentGroup = (bodyId >= 0 && bodies[bodyId]) ? bodies[bodyId] : mujocoRoot;
+      parentGroup.add(light);
+      if (light.target && !light.target.parent) {
+        parentGroup.add(light.target);
       }
       lights.push(light);
+      dynamicLightCount++;
+
+      if (lightAmbientBuffer && lightAmbientBuffer.length >= ((l * 3) + 3)) {
+        const ambientColor = new THREE.Color(
+          lightAmbientBuffer[(l * 3) + 0],
+          lightAmbientBuffer[(l * 3) + 1],
+          lightAmbientBuffer[(l * 3) + 2]
+        );
+        const ambientIntensity = Math.max(ambientColor.r, ambientColor.g, ambientColor.b) * GLOBAL_LIGHT_INTENSITY_MULTIPLIER;
+        if (ambientIntensity > 0.001) {
+          const ambientLight = new THREE.AmbientLight(ambientColor, ambientIntensity);
+          mujocoRoot.add(ambientLight);
+          lights.push(ambientLight);
+          dynamicLightCount++;
+        }
+      }
+
+      if (lightSpecularBuffer && lightSpecularBuffer.length >= ((l * 3) + 3)) {
+        const specularStrength = Math.max(
+          lightSpecularBuffer[(l * 3) + 0],
+          lightSpecularBuffer[(l * 3) + 1],
+          lightSpecularBuffer[(l * 3) + 2]
+        );
+        light.userData.specularStrength = specularStrength;
+      }
     }
   }
-  
-  // Add default light if no lights in mjModel
-  if (mjModel.nlight === 0 || !mjModel.light_directional) {
-    let light = new THREE.DirectionalLight();
-    mujocoRoot.add(light);
+
+  // default light fallback
+  if (dynamicLightCount === 0) {
+    const fallbackLight = new THREE.DirectionalLight(new THREE.Color(1, 1, 1), 0.75);
+    fallbackLight.position.set(5, 10, 5);
+    mujocoRoot.add(fallbackLight);
+    lights.push(fallbackLight);
+    // const ambientFallback = new THREE.AmbientLight(new THREE.Color(1, 1, 1), 0.6);
+    // mujocoRoot.add(ambientFallback);
+    // lights.push(ambientFallback);
+
+    // const directionalFallback = new THREE.DirectionalLight(new THREE.Color(1, 1, 1), 1.0);
+    // directionalFallback.position.set(2, 10, 2);
+    // directionalFallback.target.position.set(0, 0, 0);
+    // mujocoRoot.add(directionalFallback);
+    // mujocoRoot.add(directionalFallback.target);
+    // lights.push(directionalFallback);
   }
 
   for (let b = 0; b < mjModel.nbody; b++) {
