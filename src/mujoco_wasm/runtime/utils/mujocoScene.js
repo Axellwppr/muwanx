@@ -93,7 +93,7 @@ function createBaseTexture(mjModel, texId) {
         const rgbaSource = mjModel.tex_rgba.subarray(texAdr * 4, (texAdr + pixelCount) * 4);
         textureData.set(rgbaSource);
         hasValidData = true;
-    } 
+    }
     // Try RGB format
     else if (mjModel.tex_rgb && mjModel.tex_rgb.length >= (texAdr + pixelCount) * 3) {
         const rgbSource = mjModel.tex_rgb.subarray(texAdr * 3, (texAdr + pixelCount) * 3);
@@ -160,10 +160,24 @@ export async function loadSceneFromURL(mujoco, filename, parent) {
   }
 
   // Load new model and data with guards
-  const modelPath = `/working/${filename}`;
+  // Normalize input path to avoid '/./' or leading './' issues in MuJoCo loader
+  const cleanedFilename = String(filename || '')
+    .trim()
+    .replace(/^(\.\/)+/, '')
+    .replace(/^public\//, '');
+  const normalizedFilename = normalizePathSegments(cleanedFilename);
+  const modelPath = `/working/${normalizedFilename}`;
+  try {
+    const exists = mujoco.FS.analyzePath(modelPath).exists;
+    if (!exists) {
+      throw new Error(`Scene XML not found at ${modelPath}`);
+    }
+  } catch (e) {
+    throw new Error(`Scene XML not accessible at ${modelPath}: ${e?.message || e}`);
+  }
   let newModel = null;
   try {
-    newModel = mujoco.MjModel.loadFromXML(modelPath);
+    newModel = mujoco.MjModel.loadFromXML(modelPath); // The error happens here when visualizing bimanual
   } catch (err) {
     throw new Error(`Failed to load MjModel from ${modelPath}: ${err?.message || err}`);
   }
@@ -201,7 +215,7 @@ export async function loadSceneFromURL(mujoco, filename, parent) {
   let bodies = {};
   let meshes = {};
   let lights = [];
-  
+
   const textureCache = new Map();
   let material = new THREE.MeshPhysicalMaterial();
   material.color = new THREE.Color(1, 1, 1);
@@ -301,7 +315,7 @@ export async function loadSceneFromURL(mujoco, filename, parent) {
       mjModel.geom_rgba[(g * 4) + 2],
       mjModel.geom_rgba[(g * 4) + 3]
     ];
-    
+
     if (mjModel.geom_matid[g] !== -1) {
       let matId = mjModel.geom_matid[g];
       color = [
@@ -318,7 +332,7 @@ export async function loadSceneFromURL(mujoco, filename, parent) {
         if (texture) {
           texture = texture.clone();
           texture.needsUpdate = true;
-          
+
           // Legacy texture repeat settings
           if (texId === 2) {
             texture.repeat = new THREE.Vector2(50, 50);
@@ -365,12 +379,12 @@ export async function loadSceneFromURL(mujoco, filename, parent) {
       // Determine plane size with backward compatibility
       let planeWidth = 100;
       let planeHeight = 100;
-      
+
       // if (size[0] && size[0] < 50) {
       //   planeWidth = size[0] * 2;
       //   planeHeight = (size[1] || size[0]) * 2;
       // }
-      
+
       const reflectorOptions = { clipBias: 0.003 };
       if (texture) {
         reflectorOptions.texture = texture;
@@ -432,7 +446,7 @@ export async function loadSceneFromURL(mujoco, filename, parent) {
       lights.push(light);
     }
   }
-  
+
   // Add default light if no lights present
   if (mjModel.nlight === 0 || !mjModel.light_directional) {
     let light = new THREE.DirectionalLight();
@@ -446,9 +460,9 @@ export async function loadSceneFromURL(mujoco, filename, parent) {
     } else if (bodies[b]) {
       bodies[0].add(bodies[b]);
     } else {
-      bodies[b] = new THREE.Group(); 
-      bodies[b].name = names[b + 1]; 
-      bodies[b].bodyID = b; 
+      bodies[b] = new THREE.Group();
+      bodies[b].name = names[b + 1];
+      bodies[b].bodyID = b;
       bodies[b].has_custom_mesh = false;
       bodies[0].add(bodies[b]);
     }
@@ -505,7 +519,7 @@ export async function downloadExampleScenesFolder(mujoco, scenePath) {
 
     const normalizedPath = scenePath.replace(/^[./]+/, '');
     const pathParts = normalizedPath.split('/');
-    
+
     const xmlDirectory = pathParts.slice(0, -1).join('/');
     if (!xmlDirectory) {
         return;
@@ -520,15 +534,15 @@ export async function downloadExampleScenesFolder(mujoco, scenePath) {
         let manifest;
         try {
             manifest = await mujocoAssetCollector.analyzeScene(scenePath, SCENE_BASE_URL);
-            
+
             if (!Array.isArray(manifest)) {
                 throw new Error(`Asset collector returned invalid result (not an array): ${typeof manifest}`);
             }
-            
+
             if (manifest.length === 0) {
                 throw new Error('No assets found by collector');
             }
-            
+
         } catch (error) {
             // Fallback to index.json if asset collector fails
             try {
@@ -547,9 +561,9 @@ export async function downloadExampleScenesFolder(mujoco, scenePath) {
 
         // Filter external URLs and process local assets
         const localAssets = manifest
-            .filter(asset => 
-                typeof asset === 'string' && 
-                !asset.startsWith('http://') && 
+            .filter(asset =>
+                typeof asset === 'string' &&
+                !asset.startsWith('http://') &&
                 !asset.startsWith('https://')
             )
             .map(originalPath => {
@@ -576,13 +590,13 @@ export async function downloadExampleScenesFolder(mujoco, scenePath) {
             const fullPath = `${SCENE_BASE_URL}/${normalizedPath}`;
             return fetch(fullPath);
         });
-        
+
         const responses = await Promise.all(requests);
 
         for (let i = 0; i < responses.length; i++) {
             const response = responses[i];
             const { originalPath, normalizedPath } = uniqueAssets[i];
-            
+
             if (!response.ok) {
                 console.warn(`[downloadExampleScenesFolder] Failed to fetch scene asset ${originalPath}: ${response.status}`);
                 continue;

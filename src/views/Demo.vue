@@ -408,8 +408,30 @@ export default {
         hasAssetMeta(metaPath) {
             return Boolean(metaPath);
         },
+        async loadAssetMeta(metaPath) {
+            if (!metaPath) return null;
+            try {
+                const resp = await fetch(metaPath);
+                if (!resp.ok) return null;
+                return await resp.json();
+            } catch (e) {
+                console.warn('Failed to load asset_meta for inspection:', e);
+                return null;
+            }
+        },
         async ensureActionManager(metaPath, policyConfig) {
-            const needsIsaac = this.hasAssetMeta(metaPath);
+            // Decide manager type more robustly: only use Isaac if asset_meta includes Isaac-related keys
+            // (so asset_meta can be camera-only without forcing IsaacActionManager)
+            let needsIsaac = false;
+            if (this.hasAssetMeta(metaPath)) {
+                const meta = await this.loadAssetMeta(metaPath);
+                if (meta && typeof meta === 'object') {
+                    const hasIsaacJoints = Array.isArray(meta.joint_names_isaac) && meta.joint_names_isaac.length > 0;
+                    const hasActuators = meta.actuators && typeof meta.actuators === 'object' && Object.keys(meta.actuators).length > 0;
+                    const hasDefaultJpos = Array.isArray(meta.default_joint_pos) && meta.default_joint_pos.length > 0;
+                    needsIsaac = hasIsaacJoints || hasActuators || hasDefaultJpos;
+                }
+            }
             const needsTrajectory = policyConfig?.type === 'trajectory';
             const currentManager = this.actionManager;
 

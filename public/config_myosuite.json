@@ -4,7 +4,7 @@
       "id": "1",
       "name": "Hand",
       "model_xml": "./examples/scenes/myosuite/myosuite/simhive/myo_sim/hand/myohand.xml",
-      "asset_meta": null,
+      "asset_meta": "./examples/checkpoints/myosuite/asset_meta_myohand.json",
       "default_policy": null,
       "policies": []
     },
@@ -12,7 +12,7 @@
       "id": "2",
       "name": "Arm",
       "model_xml": "./examples/scenes/myosuite/myosuite/simhive/myo_sim/arm/myoarm.xml",
-      "asset_meta": null,
+      "asset_meta": "./examples/checkpoints/myosuite/asset_meta_myoarm.json",
       "default_policy": null,
       "policies": []
     },
@@ -20,7 +20,7 @@
       "id": "3",
       "name": "Elbow",
       "model_xml": "./examples/scenes/myosuite/myosuite/simhive/myo_sim/elbow/myoelbow_2dof6muscles.xml",
-      "asset_meta": null,
+      "asset_meta": "./examples/checkpoints/myosuite/asset_meta_myoelbow.json",
       "default_policy": null,
       "policies": []
     },
@@ -28,7 +28,7 @@
       "id": "4",
       "name": "Legs",
       "model_xml": "./examples/scenes/myosuite/myosuite/simhive/myo_sim/leg/myolegs.xml",
-      "asset_meta": null,
+      "asset_meta": "./examples/checkpoints/myosuite/asset_meta_myolegs.json",
       "default_policy": null,
       "policies": []
     }

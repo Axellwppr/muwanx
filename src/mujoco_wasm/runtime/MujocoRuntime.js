@@ -50,7 +50,7 @@ export class MujocoRuntime {
         this.scene = new THREE.Scene();
         this.scene.name = 'scene';
 
-        this.camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.001, 100);
+        this.camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.001, 1000);
         this.camera.name = 'PerspectiveCamera';
         this.camera.position.set(2.0, 1.7, 1.7);
         this.scene.add(this.camera);
@@ -200,6 +200,13 @@ export class MujocoRuntime {
                 assetMeta = await response.json();
             }
 
+            // Camera condfig from asset metadata (if present)
+            try {
+                this.applyCameraFromMetadata(assetMeta);
+            } catch (e) {
+                console.warn('[MujocoRuntime] Failed to apply camera from metadata:', e);
+            }
+
             // safe guard
             if (!this.mjModel || !this.mjModel.opt) {
                 throw new Error("mjModel is invalid or deleted before accessing opt");
@@ -234,6 +241,63 @@ export class MujocoRuntime {
         })();
 
         await this.loadingScene;
+    }
+
+    // Reset to default camera, then apply overrides from the scene's asset metadata.
+    // Supports the following (all optional):
+    // - assetMeta.camera.pos: [x, y, z]
+    // - assetMeta.camera.target: [x, y, z]
+    // - assetMeta.camera.fov: number
+    applyCameraFromMetadata(assetMeta) {
+        // Always reset to defaults on scene/policy change
+        this.resetDefaultCamera();
+
+        if (!assetMeta || typeof assetMeta !== 'object') {
+            return; // no overrides provided
+        }
+
+        const cameraMeta = assetMeta.camera && typeof assetMeta.camera === 'object'
+            ? assetMeta.camera
+            : {};
+
+        const pickVec3 = (v) => (Array.isArray(v) && v.length >= 3 && v.every(n => typeof n === 'number'))
+            ? [v[0], v[1], v[2]]
+            : null;
+
+        const pos = pickVec3(cameraMeta.pos ?? assetMeta.camera_pos);
+        const target = pickVec3(cameraMeta.target ?? assetMeta.camera_target);
+        const fov = typeof (cameraMeta.fov ?? assetMeta.camera_fov) === 'number'
+            ? (cameraMeta.fov ?? assetMeta.camera_fov)
+            : null;
+
+        // Apply FOV if provided
+        if (typeof fov === 'number' && isFinite(fov) && fov > 0) {
+            this.camera.fov = fov;
+            this.camera.updateProjectionMatrix();
+        }
+
+        // Apply target before position/angle calculations
+        if (target) {
+            this.camera.lookAt(target[0], target[1], target[2]);
+            this.controls.target.set(target[0], target[1], target[2]);
+        }
+
+        // If absolute position provided, use it directly
+        if (pos) {
+            this.camera.position.set(pos[0], pos[1], pos[2]);
+            this.controls.update();
+            return;
+        }
+    }
+
+    // Re-apply the runtime's default camera configuration.
+    resetDefaultCamera() {
+        // Defaults must match the constructor
+        this.camera.fov = 45;
+        this.camera.position.set(2.0, 1.7, 1.7);
+        this.controls.target.set(0, 0.2, 0);
+        this.controls.update();
+        this.camera.updateProjectionMatrix();
     }
 
     async loadPolicy(policyPath) {
@@ -594,7 +658,7 @@ export class MujocoRuntime {
     dispose() {
         // Stop the simulation loop first
         this.stop();
-        
+
         // Clear policy and ONNX session
         if (this.policy && this.policy.session) {
             try {
@@ -605,7 +669,7 @@ export class MujocoRuntime {
         }
         this.policy = null;
         this.inputDict = null;
-        
+
         // Free WebAssembly objects in correct order
         if (this.mjData) {
             try {
@@ -623,10 +687,10 @@ export class MujocoRuntime {
             }
             this.mjModel = null;
         }
-        
+
         // Dispose Three.js scene objects
         this.disposeThreeJSResources();
-        
+
         // Remove event listeners and dispose renderer
         window.removeEventListener('resize', this.onWindowResize);
         if (this.controls) {
@@ -634,7 +698,7 @@ export class MujocoRuntime {
         }
         this.renderer.setAnimationLoop(null);
         this.renderer.dispose();
-        
+
         // Dispose managers
         if (this.commandManager && typeof this.commandManager.dispose === 'function') {
             this.commandManager.dispose();
@@ -647,7 +711,7 @@ export class MujocoRuntime {
                 manager.dispose();
             }
         }
-        
+
         // Clear references
         this.bodies = null;
         this.lights = null;
@@ -655,7 +719,7 @@ export class MujocoRuntime {
         this.lastSimState = null;
         this.services.clear();
     }
-    
+
     disposeThreeJSResources() {
         if (this.scene) {
             // Recursively dispose all objects in the scene
@@ -673,14 +737,14 @@ export class MujocoRuntime {
                     }
                 }
             });
-            
+
             // Clear the scene
             while (this.scene.children.length > 0) {
                 this.scene.remove(this.scene.children[0]);
             }
         }
     }
-    
+
     disposeMaterial(material) {
         if (material) {
             // Dispose textures
@@ -690,7 +754,7 @@ export class MujocoRuntime {
                     value.dispose();
                 }
             });
-            
+
             // Dispose the material itself
             material.dispose();
         }
