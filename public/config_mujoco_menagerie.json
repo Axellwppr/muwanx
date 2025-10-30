@@ -1,4 +1,6 @@
 {
+  "project_name": "MuJoCo Menagerie",
+  "project_link": "https://github.com/google-deepmind/mujoco_menagerie",
   "tasks": [
     {
       "id": "1",

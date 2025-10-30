@@ -17,48 +17,101 @@
     </v-btn>
 
     <v-card class="control-card" :elevation="isMobile ? 0 : 2">
-      <!-- Scene selection -->
+      <!-- Project title (shown only when project_name exists) -->
+      <v-card-title v-if="config && config.project_name" class="control-card-title">
+        <template v-if="config.project_link">
+          <a :href="config.project_link" target="_blank" rel="noopener" class="project-title-link">
+            {{ config.project_name }}
+          </a>
+        </template>
+        <template v-else>
+          <span class="project-title-text">{{ config.project_name }}</span>
+        </template>
+      </v-card-title>
+      <!-- Scene selection (segmented dropdown) -->
       <v-card-text :class="{ 'mobile-padding': isMobile }">
-        <v-select
-          v-model="task"
-          :items="taskItems"
-          item-title="name"
-          item-value="id"
-          label="Scene"
-          density="compact"
-          variant="outlined"
-          hide-details
-          @update:modelValue="updateTaskCallback()"
-        />
+        <div class="segmented-select">
+          <div class="segment-label">Scene</div>
+          <v-menu v-model="sceneMenu" :close-on-content-click="true" transition="fade-transition" location="bottom start">
+            <template #activator="{ props }">
+              <v-btn
+                v-bind="props"
+                class="segment-button"
+                size="small"
+                variant="text"
+                append-icon="mdi-chevron-down"
+                role="combobox"
+                aria-haspopup="listbox"
+                :aria-expanded="String(sceneMenu)"
+                aria-controls="scene-listbox"
+              >
+                <span class="segment-value">{{ selectedTask?.name || '—' }}</span>
+              </v-btn>
+            </template>
+            <v-list id="scene-listbox" class="dropdown-list" density="compact" :style="{ minWidth: '192px', maxHeight: '280px', overflowY: 'auto' }">
+              <v-list-item
+                v-for="(item, i) in taskItems"
+                :key="item.id || i"
+                :class="{ selected: item.id === task }"
+                role="option"
+                :aria-selected="String(item.id === task)"
+                @click="task = item.id; updateTaskCallback()"
+              >
+                <v-list-item-title>{{ item.name }}</v-list-item-title>
+                <template #append>
+                  <v-icon v-if="item.id === task" icon="mdi-check" size="small" color="primary"></v-icon>
+                </template>
+              </v-list-item>
+            </v-list>
+          </v-menu>
+        </div>
       </v-card-text>
 
-      <!-- Policy selection (only if available) -->
+      <!-- Policy selection (segmented dropdown, only if available) -->
       <v-card-text v-if="selectedTask && selectedTask.policies && selectedTask.policies.length"
         :class="{ 'mobile-padding': isMobile }">
-        <v-select
-          v-model="policy"
-          :items="policyItems"
-          item-title="name"
-          item-value="id"
-          label="Policy"
-          density="compact"
-          variant="outlined"
-          hide-details
-          @update:modelValue="updatePolicyCallback()"
-        />
-      </v-card-text>
-
-      <!-- No policy message -->
-      <v-card-text v-else :class="{ 'mobile-padding': isMobile }" class="no-policy-message">
-        <div class="control-section-title">Policy</div>
-        <div class="force-description">No policies.</div>
+        <div class="segmented-select">
+          <div class="segment-label">Policy</div>
+          <v-menu v-model="policyMenu" :close-on-content-click="true" transition="fade-transition" location="bottom start">
+            <template #activator="{ props }">
+              <v-btn
+                v-bind="props"
+                class="segment-button"
+                size="small"
+                variant="text"
+                append-icon="mdi-chevron-down"
+                role="combobox"
+                aria-haspopup="listbox"
+                :aria-expanded="String(policyMenu)"
+                aria-controls="policy-listbox"
+              >
+                <span class="segment-value">{{ selectedPolicy?.name || '—' }}</span>
+              </v-btn>
+            </template>
+            <v-list id="policy-listbox" class="dropdown-list" density="compact" :style="{ minWidth: '192px', maxHeight: '280px', overflowY: 'auto' }">
+              <v-list-item
+                v-for="(item, i) in policyItems"
+                :key="item.id || i"
+                :class="{ selected: item.id === policy }"
+                role="option"
+                :aria-selected="String(item.id === policy)"
+                @click="policy = item.id; updatePolicyCallback()"
+              >
+                <v-list-item-title>{{ item.name }}</v-list-item-title>
+                <template #append>
+                  <v-icon v-if="item.id === policy" icon="mdi-check" size="small" color="primary"></v-icon>
+                </template>
+              </v-list-item>
+            </v-list>
+          </v-menu>
+        </div>
       </v-card-text>
 
       <!-- Policy-specific contents for selected policy -->
       <template v-if="selectedPolicy">
         <!-- Command Controls Group -->
         <v-card-text :class="{ 'mobile-padding': isMobile }">
-          <div class="control-section-title">Target</div>
+          <div class="control-section-title">Target Velocity</div>
 
           <!-- Setpoint checkbox -->
           <v-checkbox v-if="selectedPolicy.ui_controls && selectedPolicy.ui_controls.includes('setpoint')"
@@ -73,7 +126,6 @@
 
           <!-- Velocity slider -->
           <div class="slider-section">
-            <div class="slider-label">Command velocity</div>
             <v-slider
               :disabled="use_setpoint && selectedPolicy.ui_controls && selectedPolicy.ui_controls.includes('setpoint') && compliant_mode"
               v-model="command_vel_x" :min="-0.5" :max="1.5" :step="0.1" :thumb-size="isMobile ? 18 : 14"
@@ -130,15 +182,11 @@
 
       <!-- Force Controls Group -->
       <v-divider></v-divider>
-      <v-card-text :class="{ 'mobile-padding': isMobile, 'pb-2': !isMobile }">
+      <v-card-text v-if="selectedTask && selectedTask.name === 'Go2'" :class="{ 'mobile-padding': isMobile, 'pb-2': !isMobile }">
         <div class="control-section-title">Force</div>
-        <div class="force-description">Drag robot to apply force</div>
-        <template v-if="selectedTask && selectedTask.name === 'Go2'">
-          <v-btn @click="StartImpulse" color="primary" block :size="isMobile ? 'default' : 'small'" class="impulse-button">
-            Impulse
-          </v-btn>
-
-        </template>
+        <v-btn @click="StartImpulse" color="primary" block :size="isMobile ? 'default' : 'small'" class="impulse-button">
+          Impulse
+        </v-btn>
       </v-card-text>
 
       <!-- Reset button -->
@@ -287,6 +335,7 @@ import { ConfigObservationManager } from '@/mujoco_wasm/runtime/managers/observa
 import { LocomotionEnvManager } from '@/mujoco_wasm/runtime/managers/environment/LocomotionEnvManager.js';
 import loadMujoco from '@/mujoco_wasm/dist/mujoco_wasm.js';
 import { markRaw, nextTick } from 'vue';
+import { createShortcuts } from '@/utils/shortcuts.js';
 
 export default {
   name: 'DemoPage',
@@ -297,6 +346,9 @@ export default {
     }
   },
   data: () => ({
+    // segmented dropdown menus state
+    sceneMenu: false,
+    policyMenu: false,
     config: { tasks: [] },
     task: null,
     policy: null,
@@ -307,7 +359,7 @@ export default {
     state: 0,
     extra_error_message: "",
     urlParamErrorMessage: "",
-    keydown_listener: null,
+    shortcuts: null,
     runtime: null,
     commandManager: null,
     actionManager: null,
@@ -815,30 +867,14 @@ export default {
       document.body.classList.remove('interactive-mode');
     }
 
-    this.keydown_listener = (event) => {
-      if (event.code === 'Backspace') {
-        this.reset();
-      }
-      if (event.key === 'i') {
-        this.toggleUIVisibility();
-      }
-      if (event.key === '?') {
-        this.showHelpDialog = !this.showHelpDialog;
-      }
-      if (event.key === 's') {
-        this.navigateScene(1);
-      }
-      if (event.key === 'S') {
-        this.navigateScene(-1);
-      }
-      if (event.key === 'p') {
-        this.navigatePolicy(1);
-      }
-      if (event.key === 'P') {
-        this.navigatePolicy(-1);
-      }
-    };
-    document.addEventListener('keydown', this.keydown_listener);
+    this.shortcuts = createShortcuts({
+      onReset: () => this.reset(),
+      onToggleUI: () => this.toggleUIVisibility(),
+      onNavigateScene: (d) => this.navigateScene(d),
+      onNavigatePolicy: (d) => this.navigatePolicy(d),
+      getHelpVisible: () => this.showHelpDialog,
+      setHelpVisible: (v) => { this.showHelpDialog = v; },
+    });
   },
   beforeUnmount() {
     // Properly dispose of the runtime before component unmount
@@ -852,8 +888,8 @@ export default {
     }
 
     window.removeEventListener('resize', this.handleResize);
-    if (this.keydown_listener) {
-      document.removeEventListener('keydown', this.keydown_listener);
+    if (this.shortcuts && typeof this.shortcuts.detach === 'function') {
+      this.shortcuts.detach();
     }
     // Clean up interactive mode class
     document.body.classList.remove('interactive-mode');
@@ -894,6 +930,22 @@ export default {
   font-size: 0.8rem; /* base size inside panel */
 }
 
+.control-card :deep(.v-card-title.control-card-title) {
+  padding: 6px 12px !important;
+  background: primary !important;
+}
+
+.project-title-link,
+.project-title-text {
+  color: var(--ui-text);
+  text-decoration: none;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.project-title-link:hover { text-decoration: none; }
+
 .mobile-padding { padding: 6px 10px !important; }
 .control-card :deep(.v-card-text) { padding: 6px 10px !important; }
 
@@ -907,7 +959,7 @@ export default {
 }
 
 .checkbox-label .label-text {
-  font-size: 1rem;
+  font-size: 0.8rem;
   font-weight: 400; /* not bold */
   color: var(--ui-text);
 }
@@ -940,9 +992,65 @@ export default {
   border: 1px solid var(--ui-border);
 }
 
-/* No policy state */
-.no-policy-message {
+/* Segmented select (label + dropdown button) */
+.segmented-select {
+  display: inline-flex;
+  align-items: stretch;
+  border-radius: 3px;
+  box-shadow: 0 0 0 1px var(--ui-border);
+  overflow: hidden;
+}
+
+.segment-label {
+  background: color-mix(in srgb, var(--ui-surface) 70%, transparent);
   color: var(--ui-muted);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 6px 8px;
+  border-right: 1px solid var(--ui-border);
+  display: flex;
+  align-items: center;
+}
+
+.segment-button.v-btn {
+  background: color-mix(in srgb, var(--ui-surface) 70%, transparent) !important;
+  box-shadow: none !important;
+  height: 28px !important;
+  min-height: 28px !important;
+  border-top-left-radius: 0 !important;
+  border-bottom-left-radius: 0 !important;
+  padding: 0 10px !important;
+  text-transform: none !important;
+}
+
+.segment-button.v-btn:hover {
+  background: var(--ui-surface) !important;
+}
+
+.segment-value {
+  font-size: 12px;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Dropdown list styling */
+.dropdown-list {
+  border: 1px solid var(--ui-border);
+  border-radius: 6px;
+}
+
+.dropdown-list .v-list-item.selected {
+  background: rgba(25, 118, 210, 0.08);
+}
+
+.dropdown-list .v-list-item:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.dropdown-list .v-list-item-title {
+  font-size: 0.85rem;
 }
 
 /* Mobile: bottom sheet */
