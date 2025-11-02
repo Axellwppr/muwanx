@@ -12,7 +12,11 @@
 export class MuJoCoAssetCollector {
   constructor(options = {}) {
     // Attributes that may reference external resources
-    this.REFERENCE_ATTRS = new Set(['file', 'href', 'src']);
+    this.REFERENCE_ATTRS = new Set([
+      'file', 'href', 'src',
+      'fileup', 'fileback', 'filedown',
+      'filefront', 'fileleft', 'fileright'
+    ]);
 
     // Map MJCF tags to compiler attributes that provide directory hints
     this.TAG_DIRECTORY_HINTS = {
@@ -62,6 +66,8 @@ export class MuJoCoAssetCollector {
       this.cache.set(cacheKey, validResult);
       return validResult;
     } catch (error) {
+      console.error(`[MuJoCoAssetCollector] Error analyzing scene ${xmlPath}:`, error);
+      // Return empty array to allow fallback to index.json in mujocoScene.js
       return [];
     }
   }

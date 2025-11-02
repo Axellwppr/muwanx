@@ -2,7 +2,7 @@
   <img src="public/muwanx_banner.png" alt="muwanx">
 </div>
 <div align="center">
-    <em>MuJoCo + ONNX Playground in Your Browser</em>
+    <em>Real-time Interactive AI Robot Simulation in Your Browser</em>
 </div>
 
 <br>
@@ -16,15 +16,15 @@
 
 ---
 
-**Muwanx** is a browser-based mujoco playground powered by [mujoco_wasm](https://github.com/zalo/mujoco_wasm) and [ONNX Runtime](https://github.com/microsoft/onnxruntime). It enables MuJoCo simulations with real-time trained policy control, running entirely in the browser - no server for simulation required.  
+**Muwanx** is a browser-based mujoco playground powered by [mujoco wasm](https://github.com/google-deepmind/mujoco/tree/main/wasm) and [ONNX Runtime](https://github.com/microsoft/onnxruntime). It enables MuJoCo simulations with real-time trained policy control, running entirely in the browser - no server for simulation required.  
 Perfect for sharing interactive demos as static sites (such as GitHub Pages), rapidly prototyping RL policies, or building customizable environments for experimentation and visualization.
 
 
 ### 🚀 [Visit the Live Demo](https://ttktjmt.github.io/muwanx/)
 
-**╰▶ [Live Demo with MyoSuite](https://ttktjmt.github.io/muwanx/#/myosuite)** &nbsp;&nbsp;© [MyoSuite](https://github.com/MyoHub/myosuite)  
-**╰▶ [Live Demo with MuJoCo Menagerie](https://ttktjmt.github.io/muwanx/#/mujoco_menagerie)** &nbsp;&nbsp;© [Google DeepMind](https://github.com/google-deepmind/mujoco_menagerie)
-
+**╰▶ [Live Demo: MyoSuite](https://ttktjmt.github.io/muwanx/#/myosuite)** &nbsp;&nbsp;© [MyoSuite](https://github.com/MyoHub/myosuite)  
+**╰▶ [Live Demo: MuJoCo Menagerie](https://ttktjmt.github.io/muwanx/#/mujoco_menagerie)** &nbsp;&nbsp;© [Google DeepMind](https://github.com/google-deepmind/mujoco_menagerie)  
+**╰▶ [Live Demo: MuJoCo Playground](https://ttktjmt.github.io/muwanx/#/mujoco_playground)** &nbsp;&nbsp;© [Google DeepMind](https://github.com/google-deepmind/mujoco_playground)  
 
 ## Features
 - **Real-time**: Run MuJoCo simulations with real-time policy control.
@@ -58,15 +58,13 @@ Open your browser and navigate to the localhost URL shown in the terminal to see
 
 ## Third-Party Assets
 
-Muwanx incorporates robot models from the external sources. See the respective submodule for full details, including individual model licenses and copyrights.  
-All models are used under their respective licenses, which can be found in the submodule's LICENSE file. Please review and comply with those terms for any use or redistribution.
+Muwanx incorporates mujoco models from the external sources. See the respective submodule for full details, including individual model licenses and copyrights. All models are used under their respective licenses. Please review and comply with those terms for any use or redistribution.
 
-- [MyoSuite License](https://github.com/MyoHub/myosuite/blob/main/LICENSE)
-- [MuJoCo Menagerie License](https://github.com/google-deepmind/mujoco_menagerie/blob/main/LICENSE)
+[MyoSuite License](https://github.com/MyoHub/myosuite/blob/main/LICENSE) ･ [MuJoCo Menagerie License](https://github.com/google-deepmind/mujoco_menagerie/blob/main/LICENSE) ･ [MuJoCo Playground License](https://github.com/google-deepmind/mujoco_playground/blob/main/LICENSE)
 
 ## Acknowledgments
 
-This project has greatly benefited from the contributions of the [Facet](https://facet.pages.dev/) project by the research group at Tsinghua University.
+This project has greatly inspired from the [Facet](https://facet.pages.dev/) project's demo page by the research group at Tsinghua University.
 
 
 ## License

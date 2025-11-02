@@ -187,6 +187,7 @@ export async function loadSceneFromURL(mujoco, filename, parent) {
     .replace(/^public\//, '');
   const normalizedFilename = normalizePathSegments(cleanedFilename);
   const modelPath = `/working/${normalizedFilename}`;
+  const modelDir = modelPath.substring(0, modelPath.lastIndexOf('/'));
   try {
     const exists = mujoco.FS.analyzePath(modelPath).exists;
     if (!exists) {
@@ -385,6 +386,12 @@ export async function loadSceneFromURL(mujoco, filename, parent) {
       alphaMap: alphaMap,
     };
     material = new THREE.MeshPhysicalMaterial(materialProps);
+
+    // Only create mesh if geometry is defined
+    if (!geometry) {
+      console.warn(`Skipping geometry ${g} (type ${type}): no valid geometry created`);
+      continue;
+    }
 
     let mesh = new THREE.Mesh(geometry, material);
 
@@ -612,11 +619,11 @@ export async function downloadExampleScenesFolder(mujoco, scenePath) {
           const arrayBuffer = await response.arrayBuffer();
           mujoco.FS.writeFile(targetPath, new Uint8Array(arrayBuffer));
         } else {
-          const textContent = await response.text();
-          mujoco.FS.writeFile(targetPath, textContent);
+          const text = await response.text();
+          mujoco.FS.writeFile(targetPath, text);
         }
       } catch (error) {
-        console.warn(`[downloadExampleScenesFolder] Failed to write asset ${targetPath}:`, error.message);
+        console.error(`[downloadExampleScenesFolder] Error writing ${targetPath}:`, error);
       }
     }
   })();
