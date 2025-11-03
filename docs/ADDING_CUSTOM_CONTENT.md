@@ -698,7 +698,7 @@ For visualization-only (no trained policy):
 ### Custom Observation Types
 
 To add new observation types, extend the `Observations` registry in:
-- `src/mujoco_wasm/runtime/observations/index.js`
+- `src/mujoco/runtime/observations/index.js`
 
 ### Trajectory Files
 
