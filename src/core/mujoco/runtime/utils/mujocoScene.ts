@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { mujocoAssetCollector } from '../../utils/mujocoAssetCollector';
 import { createLights } from './lights';
+import { createTexture } from './textures';
 import type { MjModel, MjData } from 'mujoco-js';
 
 const SCENE_BASE_URL = './';
@@ -71,217 +72,6 @@ function resolveAssetPath(xmlDirectory: string, assetPath: string): string | nul
   return joined || normalized || null;
 }
 
-function create2DTexture(mujoco: any, mjModel: MjModel, texId: number) {
-  const width = mjModel.tex_width ? mjModel.tex_width[texId] : 0;
-  const height = mjModel.tex_height ? mjModel.tex_height[texId] : 0;
-  if (!width || !height) {
-    return null;
-  }
-
-  const texAdr = mjModel.tex_adr ? mjModel.tex_adr[texId] : 0;
-  const pixelCount = width * height;
-
-  // Per MuJoCo docs, textures are packed into tex_data with per-texture
-  // start address (tex_adr) and channel count (tex_nchannel).
-  const nchannel = mjModel.tex_nchannel ? mjModel.tex_nchannel[texId] : 0;
-  const srcByteCount = pixelCount * nchannel;
-
-  let textureData = new Uint8Array(pixelCount * 4);
-  let hasValidData = false;
-  if (mjModel.tex_data && nchannel >= 1 && nchannel <= 4 && mjModel.tex_data.length >= texAdr + srcByteCount) {
-    const src = mjModel.tex_data.subarray(texAdr, texAdr + srcByteCount);
-    // Expand 1/2/3/4 channels to RGBA
-    switch (nchannel) {
-      case 1: { // L
-        for (let i = 0, d = 0; i < src.length; i += 1, d += 4) {
-          const l = src[i];
-          textureData[d + 0] = l;
-          textureData[d + 1] = l;
-          textureData[d + 2] = l;
-          textureData[d + 3] = 255;
-        }
-        hasValidData = true;
-        break;
-      }
-      case 2: { // L+A
-        for (let i = 0, d = 0; i < src.length; i += 2, d += 4) {
-          const l = src[i + 0];
-          const a = src[i + 1];
-          textureData[d + 0] = l;
-          textureData[d + 1] = l;
-          textureData[d + 2] = l;
-          textureData[d + 3] = a;
-        }
-        hasValidData = true;
-        break;
-      }
-      case 3: { // R+G+B
-        for (let i = 0, d = 0; i < src.length; i += 3, d += 4) {
-          textureData[d + 0] = src[i + 0];
-          textureData[d + 1] = src[i + 1];
-          textureData[d + 2] = src[i + 2];
-          textureData[d + 3] = 255;
-        }
-        hasValidData = true;
-        break;
-      }
-      case 4: { // R+G+B+A
-        textureData.set(src);
-        hasValidData = true;
-        break;
-      }
-      default:
-        hasValidData = false;
-    }
-  }
-
-  if (!hasValidData) {
-    return null;
-  }
-
-  const texture = new THREE.DataTexture(textureData, width, height, THREE.RGBAFormat, THREE.UnsignedByteType);
-  texture.needsUpdate = true;
-  texture.flipY = false;
-  texture.wrapS = THREE.RepeatWrapping;
-  texture.wrapT = THREE.RepeatWrapping;
-  texture.anisotropy = 4;  // Or set dynamically via renderer.capabilities.getMaxAnisotropy()
-  texture.magFilter = THREE.LinearFilter;
-  texture.minFilter = THREE.LinearMipmapLinearFilter;
-  texture.generateMipmaps = true;
-  // Respect MuJoCo tex_colorspace when available
-  if (mjModel.tex_colorspace) {
-    const cs = mjModel.tex_colorspace[texId];
-    // mjCOLORSPACE_SRGB -> sRGB encoding; LINEAR/AUTO -> keep default
-    if (cs === mujoco.mjtColorSpace.mjCOLORSPACE_SRGB.value && 'sRGBEncoding' in THREE) {
-      texture.encoding = THREE.sRGBEncoding;
-    }
-  }
-  return texture;
-}
-
-function createCubeTexture(mujoco: any, mjModel: MjModel, texId: number) {
-  const width: number = mjModel.tex_width ? mjModel.tex_width[texId] : 0;
-  const height: number = mjModel.tex_height ? mjModel.tex_height[texId] : 0;
-
-  if (!width || !height) {
-    return null;
-  }
-
-  const texAdr = mjModel.tex_adr ? mjModel.tex_adr[texId] : 0;
-  const nchannel = mjModel.tex_nchannel ? mjModel.tex_nchannel[texId] : 0;
-
-  // A cubemap has 6 faces; each face is width x height in size
-  const facePixelCount = width * height;
-  const faceSrcByteCount = facePixelCount * nchannel;
-
-  // Prepare texture data for all 6 faces
-  const faces = [];
-  const faceOrder = [
-    'px', 'nx',  // positive-x, negative-x
-    'py', 'ny',  // positive-y, negative-y
-    'pz', 'nz'   // positive-z, negative-z
-  ];
-
-  for (let faceIdx = 0; faceIdx < 6; faceIdx++) {
-    const faceOffset = texAdr + (faceIdx * faceSrcByteCount);
-    const faceData = new Uint8Array(facePixelCount * 4);  // RGBA
-
-    if (mjModel.tex_data && nchannel >= 1 && nchannel <= 4 &&
-        mjModel.tex_data.length >= faceOffset + faceSrcByteCount) {
-
-      const src = mjModel.tex_data.subarray(faceOffset, faceOffset + faceSrcByteCount);
-
-      // Convert to RGBA based on the number of channels
-      expandChannelsToRGBA(src, faceData, nchannel);
-      faces.push(faceData);
-    } else {
-      return null;
-    }
-  }
-
-  // Create a THREE.js CubeTexture
-  const cubeTexture = new THREE.CubeTexture();
-
-  // Create a DataTexture for each face and assign it to the cube texture
-  cubeTexture.image = faces.map(faceData => {
-    const canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
-    const ctx = canvas.getContext('2d');
-    const imageData = ctx.createImageData(width, height);
-    imageData.data.set(faceData);
-    ctx.putImageData(imageData, 0, 0);
-    return canvas;
-  });
-
-  cubeTexture.needsUpdate = true;
-  cubeTexture.format = THREE.RGBAFormat;
-
-  // Set color space
-  if (mjModel.tex_colorspace) {
-    const cs = mjModel.tex_colorspace[texId];
-    if (cs === mujoco.mjtColorSpace.mjCOLORSPACE_SRGB.value && 'sRGBEncoding' in THREE) {
-      cubeTexture.encoding = THREE.sRGBEncoding;
-    }
-  }
-
-  return cubeTexture;
-}
-
-// Helper function for channel conversion
-function expandChannelsToRGBA(src, dest, nchannel) {
-  switch (nchannel) {
-    case 1: // L
-      for (let i = 0, d = 0; i < src.length; i += 1, d += 4) {
-        const l = src[i];
-        dest[d + 0] = l;
-        dest[d + 1] = l;
-        dest[d + 2] = l;
-        dest[d + 3] = 255;
-      }
-      break;
-    case 2: // L+A
-      for (let i = 0, d = 0; i < src.length; i += 2, d += 4) {
-        const l = src[i + 0];
-        const a = src[i + 1];
-        dest[d + 0] = l;
-        dest[d + 1] = l;
-        dest[d + 2] = l;
-        dest[d + 3] = a;
-      }
-      break;
-    case 3: // RGB
-      for (let i = 0, d = 0; i < src.length; i += 3, d += 4) {
-        dest[d + 0] = src[i + 0];
-        dest[d + 1] = src[i + 1];
-        dest[d + 2] = src[i + 2];
-        dest[d + 3] = 255;
-      }
-      break;
-    case 4: // RGBA
-      dest.set(src);
-      break;
-  }
-}
-
-function createBaseTexture(mujoco: any, mjModel: MjModel, texId: number) {
-  if (!mjModel || texId < 0) {
-    return null;
-  }
-
-  const type = mjModel.tex_type ? mjModel.tex_type[texId] : mujoco.mjtTexture.mjTEXTURE_2D.value;
-
-  if (type === mujoco.mjtTexture.mjTEXTURE_2D.value) { // 2D texture
-    return create2DTexture(mujoco, mjModel, texId);
-  }
-  if (type === mujoco.mjtTexture.mjTEXTURE_CUBE.value) { // Cubemap texture
-    // return createCubeTexture(mujoco, mjModel, texId);
-  }
-
-  console.warn(`Unsupported texture type ${type} for texId: ${texId}`);
-  return null;
-}
-
 export async function loadSceneFromURL(mujoco: any, filename: string, parent: any): Promise<any[]> {
   // Clean up existing resources
   if (parent.mjData != null) {
@@ -310,7 +100,8 @@ export async function loadSceneFromURL(mujoco: any, filename: string, parent: an
   } catch (e) {
     throw new Error(`Scene XML not accessible at ${modelPath}: ${e?.message || e}`);
   }
-  let newModel = null;
+
+  let newModel: MjModel | null = null;
   try {
     // TODO: The error happens here when visualizing bimanual and soccer models in MyoSuite
     newModel = mujoco.MjModel.loadFromXML(modelPath);
@@ -320,8 +111,8 @@ export async function loadSceneFromURL(mujoco: any, filename: string, parent: an
   if (!newModel) {
     throw new Error(`MjModel.loadFromXML returned null for ${modelPath}`);
   }
-
-  let newData = null;
+  
+  let newData: MjData | null = null;
   try {
     newData = new mujoco.MjData(newModel);
   } catch (err) {
@@ -462,7 +253,7 @@ export async function loadSceneFromURL(mujoco: any, filename: string, parent: an
       mjModel.geom_rgba[g * 4 + 2],
       mjModel.geom_rgba[g * 4 + 3],
     ];
-    let texture = null;
+    let texture: THREE.Texture | null = null;
     let alphaMap = null;
     if (mjModel.geom_matid[g] != -1) {
       let matId = mjModel.geom_matid[g];
@@ -476,7 +267,7 @@ export async function loadSceneFromURL(mujoco: any, filename: string, parent: an
       const role = mujoco.mjtTextureRole.mjTEXROLE_RGB.value;
       let texId = mjModel.mat_texid[matId * mujoco.mjtTextureRole.mjNTEXROLE.value + role];
       if (texId != -1) {
-        texture = createBaseTexture(mujoco, mjModel, texId);
+        texture = createTexture({ mujoco, mjModel, texId });
         if (texture) {
           // Set repeat from mat_texrepeat (per API)
           const repeatX = mjModel.mat_texrepeat ? mjModel.mat_texrepeat[matId * 2 + 0] : 1;
@@ -537,7 +328,7 @@ export async function loadSceneFromURL(mujoco: any, filename: string, parent: an
   mujocoRoot.add(mujocoRoot.spheres);
 
   // Lights
-  const lights: THREE.Light[] = createLights({mujoco, mjModel, mujocoRoot, bodies});
+  const lights: THREE.Light[] = createLights({ mujoco, mjModel, mujocoRoot, bodies });
 
   for (let b = 0; b < mjModel.nbody; b++) {
     if (b === 0 || !bodies[0]) {

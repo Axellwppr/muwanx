@@ -1,8 +1,12 @@
 {
   "name": "muwanx",
-  "private": true,
   "type": "module",
   "version": "0.0.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ttktjmt/muwanx.git"
+  },
+  "license": "Apache-2.0",
   "main": "./dist/muwanx.umd.js",
   "module": "./dist/muwanx.es.js",
   "types": "./dist/index.d.ts",

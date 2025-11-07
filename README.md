@@ -55,10 +55,19 @@ Open your browser and navigate to the localhost URL shown in the terminal.
 
 <img src="assets/muwanx_demo.gif" alt="muwanx demo" width="70%">
 
+<!-- 
+## Usage
+
+Muwanx is available as an [npm package](https://www.npmjs.com/package/muwanx). You can install it using the following command:
+
+```bash
+npm install muwanx
+```
+ -->
 
 ## Third-Party Assets
 
-Muwanx incorporates mujoco models from the external sources. See the respective submodule for full details, including individual model licenses and copyrights. All models are used under their respective licenses. Please review and comply with those terms for any use or redistribution.
+Muwanx incorporates mujoco models from the external sources in its demo. See the respective submodule for full details, including individual model licenses and copyrights. All models are used under their respective licenses. Please review and comply with those terms for any use or redistribution.
 
 [MyoSuite License](https://github.com/MyoHub/myosuite/blob/main/LICENSE) ･ [MuJoCo Menagerie License](https://github.com/google-deepmind/mujoco_menagerie/blob/main/LICENSE) ･ [MuJoCo Playground License](https://github.com/google-deepmind/mujoco_playground/blob/main/LICENSE)
 

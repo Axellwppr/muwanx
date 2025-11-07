@@ -21,7 +21,7 @@
           </div>
           <div class="shortcut-item">
             <div class="shortcut-key"><kbd @click="emit('toggleUI')" class="clickable-key">i</kbd></div>
-            <div class="shortcut-description">Toggle Interactive Mode (Hide/Show UI)</div>
+            <div class="shortcut-description">Toggle control panel</div>
           </div>
           <div class="shortcut-item">
             <div class="shortcut-key"><kbd @click="emit('reset')" class="clickable-key">backspace</kbd></div>
