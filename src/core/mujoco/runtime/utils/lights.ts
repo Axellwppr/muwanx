@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import type { MjData, MjModel } from 'mujoco-js';
+import { mjcToThreeCoordinate } from './coordinate';
 
 interface CreateLightsParams {
   mujoco: any; // MuJoCo instance
@@ -7,14 +8,6 @@ interface CreateLightsParams {
   mujocoRoot: THREE.Group;
   bodies: Record<number, THREE.Group>;
 }
-
-/**
- * Convert a mujoco coordinate to three.js coordinate. (x, y, z) -> (x, z, -y)
- */
-const mjToThreeCoordinate = (v: ArrayLike<number>) => {
-  if (THREE.Object3D.DEFAULT_UP.z === 1) return new THREE.Vector3(v[0], v[1], v[2]);
-  return new THREE.Vector3(v[0], v[2], -v[1]);
-};
 
 export function createLights({ mujoco, mjModel, mujocoRoot, bodies }: CreateLightsParams): THREE.Light[] {
   const lights: THREE.Light[] = [];
@@ -81,8 +74,8 @@ export function createLights({ mujoco, mjModel, mujocoRoot, bodies }: CreateLigh
       }
 
       // Position and direction (static; in full sim, update via mjData.light_xpos/light_xdir)
-      const pos = mjToThreeCoordinate(mjModel.light_pos.slice(l * 3, l * 3 + 3)).toArray();
-      const dir = mjToThreeCoordinate(mjModel.light_dir.slice(l * 3, l * 3 + 3)).normalize();
+      const pos = mjcToThreeCoordinate(mjModel.light_pos.slice(l * 3, l * 3 + 3)).toArray();
+      const dir = mjcToThreeCoordinate(mjModel.light_dir.slice(l * 3, l * 3 + 3)).normalize();
 
       if (lightType === mujoco.mjtLightType.mjLIGHT_DIRECTIONAL.value) {
         // place the light a bit *behind* the position, pointing toward `pos`
@@ -199,8 +192,8 @@ export function updateLightsFromData(
     const posMJ = mjData.light_xpos.slice(idx * 3, idx * 3 + 3);
     const dirMJ = mjData.light_xdir.slice(idx * 3, idx * 3 + 3);
 
-    const pos = mjToThreeCoordinate(posMJ);
-    const dir = mjToThreeCoordinate(dirMJ).normalize();
+    const pos = mjcToThreeCoordinate(posMJ);
+    const dir = mjcToThreeCoordinate(dirMJ).normalize();
 
     if (type === mujoco.mjtLightType.mjLIGHT_DIRECTIONAL.value) {
       const dl = light as THREE.DirectionalLight;

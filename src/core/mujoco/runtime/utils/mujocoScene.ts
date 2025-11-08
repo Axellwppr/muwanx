@@ -111,7 +111,7 @@ export async function loadSceneFromURL(mujoco: any, filename: string, parent: an
   if (!newModel) {
     throw new Error(`MjModel.loadFromXML returned null for ${modelPath}`);
   }
-  
+
   let newData: MjData | null = null;
   try {
     newData = new mujoco.MjData(newModel);
@@ -173,95 +173,137 @@ export async function loadSceneFromURL(mujoco: any, filename: string, parent: an
     }
 
     let geometry = undefined;
-    if (type === mujoco.mjtGeom.mjGEOM_PLANE.value) {
-      let width, height;
-      if (size[0] === 0) { width = 100; } else { width = size[0] * 2.0; }
-      if (size[1] === 0) { height = 100; } else { height = size[1] * 2.0; }
+    switch (type) {
+      case mujoco.mjtGeom.mjGEOM_PLANE.value: {
+        let width, height;
+        if (size[0] === 0) { width = 100; } else { width = size[0] * 2.0; }
+        if (size[1] === 0) { height = 100; } else { height = size[1] * 2.0; }
 
-      // Use simple plane geometry
-      geometry = new THREE.PlaneGeometry(width, height);
-      geometry.rotateX(-Math.PI / 2);
-
-      // Use reflective plane for ground if needed
-      // const reflectorOptions = { clipBias: 0.003 };
-      // let mesh;
-      // mesh = new Reflector(new THREE.PlaneGeometry(width, height), reflectorOptions);
-      // mesh.rotateX(-Math.PI / 2);
-      // mesh.castShadow = g === 0 ? false : true;
-      // mesh.receiveShadow = type !== 7;
-      // mesh.bodyID = b;
-      // bodies[b].add(mesh);
-      // getPosition(mjModel.geom_pos, g, mesh.position);\
-    } else if (type === mujoco.mjtGeom.mjGEOM_HFIELD.value) {
-      // Not implemented
-    } else if (type === mujoco.mjtGeom.mjGEOM_SPHERE.value) {
-      geometry = new THREE.SphereGeometry(size[0]);
-    } else if (type === mujoco.mjtGeom.mjGEOM_CAPSULE.value) {
-      geometry = new THREE.CapsuleGeometry(size[0], size[1] * 2.0, 20, 20);
-    } else if (type === mujoco.mjtGeom.mjGEOM_ELLIPSOID.value) {
-      geometry = new THREE.SphereGeometry(1);
-    } else if (type === mujoco.mjtGeom.mjGEOM_CYLINDER.value) {
-      geometry = new THREE.CylinderGeometry(size[0], size[0], size[1] * 2.0);
-    } else if (type === mujoco.mjtGeom.mjGEOM_BOX.value) {
-      geometry = new THREE.BoxGeometry(size[0] * 2.0, size[2] * 2.0, size[1] * 2.0);
-    } else if (type === mujoco.mjtGeom.mjGEOM_MESH.value) {
-      let meshID = mjModel.geom_dataid[g];
-
-      if (!(meshID in meshes)) {
-        geometry = new THREE.BufferGeometry();
-
-        let vertex_buffer = mjModel.mesh_vert.subarray(
-          mjModel.mesh_vertadr[meshID] * 3,
-          (mjModel.mesh_vertadr[meshID] + mjModel.mesh_vertnum[meshID]) * 3);
-        for (let v = 0; v < vertex_buffer.length; v += 3) {
-          let temp = vertex_buffer[v + 1];
-          vertex_buffer[v + 1] = vertex_buffer[v + 2];
-          vertex_buffer[v + 2] = -temp;
-        }
-
-        let normal_buffer = mjModel.mesh_normal.subarray(
-          mjModel.mesh_vertadr[meshID] * 3,
-          (mjModel.mesh_vertadr[meshID] + mjModel.mesh_vertnum[meshID]) * 3);
-        for (let v = 0; v < normal_buffer.length; v += 3) {
-          let temp = normal_buffer[v + 1];
-          normal_buffer[v + 1] = normal_buffer[v + 2];
-          normal_buffer[v + 2] = -temp;
-        }
-
-        let uv_buffer = mjModel.mesh_texcoord.subarray(
-          mjModel.mesh_texcoordadr[meshID] * 2,
-          (mjModel.mesh_texcoordadr[meshID] + mjModel.mesh_vertnum[meshID]) * 2);
-        let triangle_buffer = mjModel.mesh_face.subarray(
-          mjModel.mesh_faceadr[meshID] * 3,
-          (mjModel.mesh_faceadr[meshID] + mjModel.mesh_facenum[meshID]) * 3);
-        geometry.setAttribute('position', new THREE.BufferAttribute(vertex_buffer, 3));
-        geometry.setAttribute('normal', new THREE.BufferAttribute(normal_buffer, 3));
-        geometry.setAttribute('uv', new THREE.BufferAttribute(uv_buffer, 2));
-        geometry.setIndex(Array.from(triangle_buffer));
-        meshes[meshID] = geometry;
-      } else {
-        geometry = meshes[meshID];
+        geometry = new THREE.PlaneGeometry(width, height);
+        geometry.rotateX(-Math.PI / 2);
+        break;
       }
+      case mujoco.mjtGeom.mjGEOM_HFIELD.value:
+        // Not implemented
+        break;
+      case mujoco.mjtGeom.mjGEOM_SPHERE.value: {
+        geometry = new THREE.SphereGeometry(size[0]);
+        break;
+      }
+      case mujoco.mjtGeom.mjGEOM_CAPSULE.value: {
+        geometry = new THREE.CapsuleGeometry(size[0], size[1] * 2.0, 20, 20);
+        break;
+      }
+      case mujoco.mjtGeom.mjGEOM_ELLIPSOID.value: {
+        geometry = new THREE.SphereGeometry(1);
+        break;
+      }
+      case mujoco.mjtGeom.mjGEOM_CYLINDER.value: {
+        geometry = new THREE.CylinderGeometry(size[0], size[0], size[1] * 2.0);
+        break;
+      }
+      case mujoco.mjtGeom.mjGEOM_BOX.value: {
+        geometry = new THREE.BoxGeometry(size[0] * 2.0, size[2] * 2.0, size[1] * 2.0);
+        break;
+      }
+      case mujoco.mjtGeom.mjGEOM_MESH.value: {
+        let meshID = mjModel.geom_dataid[g];
 
-      bodies[b].has_custom_mesh = true;
+        if (!(meshID in meshes)) {
+          geometry = new THREE.BufferGeometry();
+
+          let vertex_buffer = mjModel.mesh_vert.subarray(
+            mjModel.mesh_vertadr[meshID] * 3,
+            (mjModel.mesh_vertadr[meshID] + mjModel.mesh_vertnum[meshID]) * 3);
+          for (let v = 0; v < vertex_buffer.length; v += 3) {
+            let temp = vertex_buffer[v + 1];
+            vertex_buffer[v + 1] = vertex_buffer[v + 2];
+            vertex_buffer[v + 2] = -temp;
+          }
+
+          let normal_buffer = mjModel.mesh_normal.subarray(
+            mjModel.mesh_normaladr[meshID] * 3,
+            (mjModel.mesh_normaladr[meshID] + mjModel.mesh_normalnum[meshID]) * 3);
+          for (let v = 0; v < normal_buffer.length; v += 3) {
+            let temp = normal_buffer[v + 1];
+            normal_buffer[v + 1] = normal_buffer[v + 2];
+            normal_buffer[v + 2] = -temp;
+          }
+
+          let uv_buffer = mjModel.mesh_texcoord.subarray(
+            mjModel.mesh_texcoordadr[meshID] * 2,
+            (mjModel.mesh_texcoordadr[meshID] + mjModel.mesh_texcoordnum[meshID]) * 2);
+
+          let face_to_vertex_buffer = mjModel.mesh_face.subarray(
+            mjModel.mesh_faceadr[meshID] * 3,
+            (mjModel.mesh_faceadr[meshID] + mjModel.mesh_facenum[meshID]) * 3);
+          let face_to_uv_buffer = mjModel.mesh_facetexcoord.subarray(
+            mjModel.mesh_faceadr[meshID] * 3,
+            (mjModel.mesh_faceadr[meshID] + mjModel.mesh_facenum[meshID]) * 3);
+          let face_to_normal_buffer = mjModel.mesh_facenormal.subarray(
+            mjModel.mesh_faceadr[meshID] * 3,
+            (mjModel.mesh_faceadr[meshID] + mjModel.mesh_facenum[meshID]) * 3);
+
+          // The UV and Normal Buffers are actually indexed by the triangle indices through the face_to_uv_buffer and face_to_normal_buffer.
+          // We need to swizzle them into a per-vertex format for three.js
+          // TODO: Still strange vertex positions leading cube textures to look weird
+          let swizzled_uv_buffer = new Float32Array((vertex_buffer.length / 3) * 2);
+          let swizzled_normal_buffer = new Float32Array(vertex_buffer.length);
+          for (let t = 0; t < face_to_vertex_buffer.length / 3; t++) {
+            let vi0 = face_to_vertex_buffer[(t * 3) + 0];
+            let vi1 = face_to_vertex_buffer[(t * 3) + 1];
+            let vi2 = face_to_vertex_buffer[(t * 3) + 2];
+            let uvi0 = face_to_uv_buffer[(t * 3) + 0];
+            let uvi1 = face_to_uv_buffer[(t * 3) + 1];
+            let uvi2 = face_to_uv_buffer[(t * 3) + 2];
+            let nvi0 = face_to_normal_buffer[(t * 3) + 0];
+            let nvi1 = face_to_normal_buffer[(t * 3) + 1];
+            let nvi2 = face_to_normal_buffer[(t * 3) + 2];
+            swizzled_uv_buffer[(vi0 * 2) + 0] = uv_buffer[(uvi0 * 2) + 0];
+            swizzled_uv_buffer[(vi0 * 2) + 1] = uv_buffer[(uvi0 * 2) + 1];
+            swizzled_uv_buffer[(vi1 * 2) + 0] = uv_buffer[(uvi1 * 2) + 0];
+            swizzled_uv_buffer[(vi1 * 2) + 1] = uv_buffer[(uvi1 * 2) + 1];
+            swizzled_uv_buffer[(vi2 * 2) + 0] = uv_buffer[(uvi2 * 2) + 0];
+            swizzled_uv_buffer[(vi2 * 2) + 1] = uv_buffer[(uvi2 * 2) + 1];
+            swizzled_normal_buffer[(vi0 * 3) + 0] = normal_buffer[(nvi0 * 3) + 0];
+            swizzled_normal_buffer[(vi0 * 3) + 1] = normal_buffer[(nvi0 * 3) + 1];
+            swizzled_normal_buffer[(vi0 * 3) + 2] = normal_buffer[(nvi0 * 3) + 2];
+            swizzled_normal_buffer[(vi1 * 3) + 0] = normal_buffer[(nvi1 * 3) + 0];
+            swizzled_normal_buffer[(vi1 * 3) + 1] = normal_buffer[(nvi1 * 3) + 1];
+            swizzled_normal_buffer[(vi1 * 3) + 2] = normal_buffer[(nvi1 * 3) + 2];
+            swizzled_normal_buffer[(vi2 * 3) + 0] = normal_buffer[(nvi2 * 3) + 0];
+            swizzled_normal_buffer[(vi2 * 3) + 1] = normal_buffer[(nvi2 * 3) + 1];
+            swizzled_normal_buffer[(vi2 * 3) + 2] = normal_buffer[(nvi2 * 3) + 2];
+          }
+          geometry.setAttribute('position', new THREE.BufferAttribute(vertex_buffer, 3));
+          geometry.setAttribute('normal', new THREE.BufferAttribute(swizzled_normal_buffer, 3));
+          geometry.setAttribute('uv', new THREE.BufferAttribute(swizzled_uv_buffer, 2));
+          geometry.setIndex(Array.from(face_to_vertex_buffer));
+          geometry.computeVertexNormals(); // MuJoCo Normals acting strangely... just recompute them
+          meshes[meshID] = geometry;
+        } else {
+          geometry = meshes[meshID];
+        }
+        bodies[b].has_custom_mesh = true;
+        break;
+      }
     }
 
     // Process geometry color and texture
     let color = [
-      mjModel.geom_rgba[g * 4 + 0],
-      mjModel.geom_rgba[g * 4 + 1],
-      mjModel.geom_rgba[g * 4 + 2],
-      mjModel.geom_rgba[g * 4 + 3],
+      mjModel.geom_rgba[(g * 4) + 0],
+      mjModel.geom_rgba[(g * 4) + 1],
+      mjModel.geom_rgba[(g * 4) + 2],
+      mjModel.geom_rgba[(g * 4) + 3]
     ];
     let texture: THREE.Texture | null = null;
-    let alphaMap = null;
     if (mjModel.geom_matid[g] != -1) {
       let matId = mjModel.geom_matid[g];
       color = [
-        mjModel.mat_rgba[matId * 4 + 0],
-        mjModel.mat_rgba[matId * 4 + 1],
-        mjModel.mat_rgba[matId * 4 + 2],
-        mjModel.mat_rgba[matId * 4 + 3],
+        mjModel.mat_rgba[(matId * 4) + 0],
+        mjModel.mat_rgba[(matId * 4) + 1],
+        mjModel.mat_rgba[(matId * 4) + 2],
+        mjModel.mat_rgba[(matId * 4) + 3]
       ];
 
       const role = mujoco.mjtTextureRole.mjTEXROLE_RGB.value;
@@ -269,24 +311,40 @@ export async function loadSceneFromURL(mujoco: any, filename: string, parent: an
       if (texId != -1) {
         texture = createTexture({ mujoco, mjModel, texId });
         if (texture) {
-          // Set repeat from mat_texrepeat (per API)
+          // Set repeat from mat_texrepeat
           const repeatX = mjModel.mat_texrepeat ? mjModel.mat_texrepeat[matId * 2 + 0] : 1;
           const repeatY = mjModel.mat_texrepeat ? mjModel.mat_texrepeat[matId * 2 + 1] : 1;
           texture.repeat.set(repeatX, repeatY);
-          texture.wrapS = repeatX > 1 ? THREE.RepeatWrapping : THREE.ClampToEdgeWrapping;
-          texture.wrapT = repeatY > 1 ? THREE.RepeatWrapping : THREE.ClampToEdgeWrapping;
+          texture.wrapS = THREE.RepeatWrapping;
+          texture.wrapT = THREE.RepeatWrapping;
         }
       }
     }
 
-    const materialProps = {
+    // Create a new material for each geom to avoid cross-contamination
+    let currentMaterial = new THREE.MeshPhysicalMaterial({
       color: new THREE.Color(color[0], color[1], color[2]),
       transparent: color[3] < 1.0,
       opacity: color[3],
-      map: texture,
-      alphaMap: alphaMap,
-    };
-    material = new THREE.MeshPhysicalMaterial(materialProps);
+      specularIntensity: mjModel.geom_matid[g] != -1 ? mjModel.mat_specular?.[mjModel.geom_matid[g]] : null,
+      reflectivity: mjModel.geom_matid[g] != -1 ? mjModel.mat_reflectance?.[mjModel.geom_matid[g]] : null,
+      roughness: mjModel.geom_matid[g] != -1 && mjModel.mat_shininess ? 1.0 - mjModel.mat_shininess[mjModel.geom_matid[g]] : null,
+      metalness: mjModel.geom_matid[g] != -1 ? mjModel.mat_specular?.[mjModel.geom_matid[g]] : 0.1,  // Approximate specular as metalness
+    });
+
+    // Handle texture assignment based on type
+    if (texture) {
+      if (texture instanceof THREE.CubeTexture) {
+        // Use cube for reflection/env map
+        currentMaterial.envMap = texture;
+        currentMaterial.envMapIntensity = mjModel.geom_matid[g] != -1 ? mjModel.mat_reflectance?.[mjModel.geom_matid[g]] || 0.5 : 0.5;
+      } else {
+        // Use 2D for diffuse
+        currentMaterial.map = texture;
+      }
+    }
+
+    material = currentMaterial;
 
     // Only create mesh if geometry is defined
     if (!geometry) {
@@ -294,17 +352,17 @@ export async function loadSceneFromURL(mujoco: any, filename: string, parent: an
       continue;
     }
 
-    let mesh = new THREE.Mesh(geometry, material);
+    let mesh = new THREE.Mesh(geometry, currentMaterial);
 
     mesh.castShadow = g == 0 ? false : true;
-    mesh.receiveShadow = type != 7;
+    mesh.receiveShadow = type != mujoco.mjtGeom.mjGEOM_MESH.value;
     mesh.bodyID = b;
     bodies[b].add(mesh);
     getPosition(mjModel.geom_pos, g, mesh.position);
-    if (type != 0) {
+    if (type != mujoco.mjtGeom.mjGEOM_PLANE.value) {
       getQuaternion(mjModel.geom_quat, g, mesh.quaternion);
     }
-    if (type == 4) {
+    if (type == mujoco.mjtGeom.mjGEOM_ELLIPSOID.value) {
       mesh.scale.set(size[0], size[2], size[1]);
     } // Stretch the Ellipsoid
   }

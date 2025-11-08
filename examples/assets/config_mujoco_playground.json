@@ -18,7 +18,6 @@
     { "id": "14", "name": "DMC Walker",                 "model_xml": "./assets/scene/mujoco_playground/mujoco_playground/_src/dm_control_suite/xmls/walker.xml",      "asset_meta": null, "default_policy": null, "policies": [] },
     
     { "id": "15", "name": "LEAP Hand Cube",             "model_xml": "./assets/scene/mujoco_playground/mujoco_playground/_src/manipulation/leap_hand/xmls/scene_mjx_cube.xml",                            "asset_meta": null, "default_policy": null, "policies": [] },
-    { "id": "15a", "name": "Cube",                      "model_xml": "./assets/scene/mujoco_playground/mujoco_playground/_src/manipulation/leap_hand/xmls/reorientation_cube.xml",                        "asset_meta": null, "default_policy": null, "policies": [] },
     { "id": "16", "name": "Panda Single Cube",          "model_xml": "./assets/scene/mujoco_playground/mujoco_playground/_src/manipulation/franka_emika_panda/xmls/mjx_single_cube.xml",                  "asset_meta": null, "default_policy": null, "policies": [] },
     { "id": "17", "name": "Panda Single Cube (Camera)", "model_xml": "./assets/scene/mujoco_playground/mujoco_playground/_src/manipulation/franka_emika_panda/xmls/mjx_single_cube_camera.xml",           "asset_meta": null, "default_policy": null, "policies": [] },
     { "id": "18", "name": "Panda Cabinet",              "model_xml": "./assets/scene/mujoco_playground/mujoco_playground/_src/manipulation/franka_emika_panda/xmls/mjx_cabinet.xml",                      "asset_meta": null, "default_policy": null, "policies": [] },
