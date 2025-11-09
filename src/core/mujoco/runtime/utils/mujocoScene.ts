@@ -212,74 +212,83 @@ export async function loadSceneFromURL(mujoco: any, filename: string, parent: an
         if (!(meshID in meshes)) {
           geometry = new THREE.BufferGeometry();
 
-          let vertex_buffer = mjModel.mesh_vert.subarray(
+          // Source buffers (positions, normals, uvs) in MuJoCo indexing spaces
+          const vertex_buffer = mjModel.mesh_vert.subarray(
             mjModel.mesh_vertadr[meshID] * 3,
             (mjModel.mesh_vertadr[meshID] + mjModel.mesh_vertnum[meshID]) * 3);
           for (let v = 0; v < vertex_buffer.length; v += 3) {
-            let temp = vertex_buffer[v + 1];
+            const temp = vertex_buffer[v + 1];
             vertex_buffer[v + 1] = vertex_buffer[v + 2];
             vertex_buffer[v + 2] = -temp;
           }
 
-          let normal_buffer = mjModel.mesh_normal.subarray(
+          const normal_buffer = mjModel.mesh_normal.subarray(
             mjModel.mesh_normaladr[meshID] * 3,
             (mjModel.mesh_normaladr[meshID] + mjModel.mesh_normalnum[meshID]) * 3);
           for (let v = 0; v < normal_buffer.length; v += 3) {
-            let temp = normal_buffer[v + 1];
+            const temp = normal_buffer[v + 1];
             normal_buffer[v + 1] = normal_buffer[v + 2];
             normal_buffer[v + 2] = -temp;
           }
 
-          let uv_buffer = mjModel.mesh_texcoord.subarray(
+          const uv_buffer = mjModel.mesh_texcoord.subarray(
             mjModel.mesh_texcoordadr[meshID] * 2,
             (mjModel.mesh_texcoordadr[meshID] + mjModel.mesh_texcoordnum[meshID]) * 2);
 
-          let face_to_vertex_buffer = mjModel.mesh_face.subarray(
+          const face_to_vertex_buffer = mjModel.mesh_face.subarray(
             mjModel.mesh_faceadr[meshID] * 3,
             (mjModel.mesh_faceadr[meshID] + mjModel.mesh_facenum[meshID]) * 3);
-          let face_to_uv_buffer = mjModel.mesh_facetexcoord.subarray(
+          const face_to_uv_buffer = mjModel.mesh_facetexcoord.subarray(
             mjModel.mesh_faceadr[meshID] * 3,
             (mjModel.mesh_faceadr[meshID] + mjModel.mesh_facenum[meshID]) * 3);
-          let face_to_normal_buffer = mjModel.mesh_facenormal.subarray(
+          const face_to_normal_buffer = mjModel.mesh_facenormal.subarray(
             mjModel.mesh_faceadr[meshID] * 3,
             (mjModel.mesh_faceadr[meshID] + mjModel.mesh_facenum[meshID]) * 3);
 
-          // The UV and Normal Buffers are actually indexed by the triangle indices through the face_to_uv_buffer and face_to_normal_buffer.
-          // We need to swizzle them into a per-vertex format for three.js
-          // TODO: Still strange vertex positions leading cube textures to look weird
-          let swizzled_uv_buffer = new Float32Array((vertex_buffer.length / 3) * 2);
-          let swizzled_normal_buffer = new Float32Array(vertex_buffer.length);
-          for (let t = 0; t < face_to_vertex_buffer.length / 3; t++) {
-            let vi0 = face_to_vertex_buffer[(t * 3) + 0];
-            let vi1 = face_to_vertex_buffer[(t * 3) + 1];
-            let vi2 = face_to_vertex_buffer[(t * 3) + 2];
-            let uvi0 = face_to_uv_buffer[(t * 3) + 0];
-            let uvi1 = face_to_uv_buffer[(t * 3) + 1];
-            let uvi2 = face_to_uv_buffer[(t * 3) + 2];
-            let nvi0 = face_to_normal_buffer[(t * 3) + 0];
-            let nvi1 = face_to_normal_buffer[(t * 3) + 1];
-            let nvi2 = face_to_normal_buffer[(t * 3) + 2];
-            swizzled_uv_buffer[(vi0 * 2) + 0] = uv_buffer[(uvi0 * 2) + 0];
-            swizzled_uv_buffer[(vi0 * 2) + 1] = uv_buffer[(uvi0 * 2) + 1];
-            swizzled_uv_buffer[(vi1 * 2) + 0] = uv_buffer[(uvi1 * 2) + 0];
-            swizzled_uv_buffer[(vi1 * 2) + 1] = uv_buffer[(uvi1 * 2) + 1];
-            swizzled_uv_buffer[(vi2 * 2) + 0] = uv_buffer[(uvi2 * 2) + 0];
-            swizzled_uv_buffer[(vi2 * 2) + 1] = uv_buffer[(uvi2 * 2) + 1];
-            swizzled_normal_buffer[(vi0 * 3) + 0] = normal_buffer[(nvi0 * 3) + 0];
-            swizzled_normal_buffer[(vi0 * 3) + 1] = normal_buffer[(nvi0 * 3) + 1];
-            swizzled_normal_buffer[(vi0 * 3) + 2] = normal_buffer[(nvi0 * 3) + 2];
-            swizzled_normal_buffer[(vi1 * 3) + 0] = normal_buffer[(nvi1 * 3) + 0];
-            swizzled_normal_buffer[(vi1 * 3) + 1] = normal_buffer[(nvi1 * 3) + 1];
-            swizzled_normal_buffer[(vi1 * 3) + 2] = normal_buffer[(nvi1 * 3) + 2];
-            swizzled_normal_buffer[(vi2 * 3) + 0] = normal_buffer[(nvi2 * 3) + 0];
-            swizzled_normal_buffer[(vi2 * 3) + 1] = normal_buffer[(nvi2 * 3) + 1];
-            swizzled_normal_buffer[(vi2 * 3) + 2] = normal_buffer[(nvi2 * 3) + 2];
+          // Build unified index over (position, normal, uv) tuples to satisfy three.js requirements
+          const positions: number[] = [];
+          const normals: number[] = [];
+          const uvs: number[] = [];
+          const indices: number[] = [];
+          const tupleToIndex = new Map<string, number>();
+
+          const faceCount = face_to_vertex_buffer.length / 3;
+          for (let t = 0; t < faceCount; t++) {
+            for (let c = 0; c < 3; c++) {
+              const vi = face_to_vertex_buffer[(t * 3) + c];
+              const nvi = face_to_normal_buffer[(t * 3) + c];
+              const uvi = face_to_uv_buffer[(t * 3) + c];
+              const key = `${vi}_${nvi}_${uvi}`;
+              let outIndex = tupleToIndex.get(key);
+              if (outIndex === undefined) {
+                outIndex = positions.length / 3;
+                tupleToIndex.set(key, outIndex);
+                positions.push(
+                  vertex_buffer[(vi * 3) + 0],
+                  vertex_buffer[(vi * 3) + 1],
+                  vertex_buffer[(vi * 3) + 2]
+                );
+                normals.push(
+                  normal_buffer[(nvi * 3) + 0],
+                  normal_buffer[(nvi * 3) + 1],
+                  normal_buffer[(nvi * 3) + 2]
+                );
+                uvs.push(
+                  uv_buffer[(uvi * 2) + 0],
+                  uv_buffer[(uvi * 2) + 1]
+                );
+              }
+              indices.push(outIndex);
+            }
           }
-          geometry.setAttribute('position', new THREE.BufferAttribute(vertex_buffer, 3));
-          geometry.setAttribute('normal', new THREE.BufferAttribute(swizzled_normal_buffer, 3));
-          geometry.setAttribute('uv', new THREE.BufferAttribute(swizzled_uv_buffer, 2));
-          geometry.setIndex(Array.from(face_to_vertex_buffer));
-          geometry.computeVertexNormals(); // MuJoCo Normals acting strangely... just recompute them
+
+          geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+          geometry.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
+          geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+          geometry.setIndex(indices);
+
+          // Recompute normals for robustness (keeps sharp edges if vertices are split by UV/normal)
+          geometry.computeVertexNormals();
           meshes[meshID] = geometry;
         } else {
           geometry = meshes[meshID];
@@ -322,7 +331,7 @@ export async function loadSceneFromURL(mujoco: any, filename: string, parent: an
     }
 
     // Create a new material for each geom to avoid cross-contamination
-    let currentMaterial = new THREE.MeshPhysicalMaterial({
+    let currentMaterial: THREE.MeshPhysicalMaterial | THREE.MeshPhysicalMaterial[] = new THREE.MeshPhysicalMaterial({
       color: new THREE.Color(color[0], color[1], color[2]),
       transparent: color[3] < 1.0,
       opacity: color[3],
@@ -334,17 +343,56 @@ export async function loadSceneFromURL(mujoco: any, filename: string, parent: an
 
     // Handle texture assignment based on type
     if (texture) {
-      if (texture instanceof THREE.CubeTexture) {
-        // Use cube for reflection/env map
-        currentMaterial.envMap = texture;
-        currentMaterial.envMapIntensity = mjModel.geom_matid[g] != -1 ? mjModel.mat_reflectance?.[mjModel.geom_matid[g]] || 0.5 : 0.5;
-      } else {
-        // Use 2D for diffuse
-        currentMaterial.map = texture;
+      if (!(texture instanceof THREE.CubeTexture)) { // Use 2D for diffuse
+        (currentMaterial as THREE.MeshPhysicalMaterial).map = texture;
+      } else {                                       // Cube texture: box mapping or environment mapping
+        if (type === mujoco.mjtGeom.mjGEOM_BOX.value && Array.isArray((texture as any).image)) {
+          const images: HTMLCanvasElement[] = (texture as any).image as HTMLCanvasElement[];
+          if (images.length === 6) {
+            if (geometry && geometry.groups && geometry.groups.length !== 6) {
+              geometry.clearGroups();
+              // Each face will be rendered with its own material. This assumes a single segment per axis.
+              // Group ranges are automatically handled by BoxGeometry creation; if not BoxGeometry, fallback below.
+            }
+
+            const baseParams = (currentMaterial as THREE.MeshPhysicalMaterial).toJSON().materials?.[0];
+            const materials: THREE.MeshPhysicalMaterial[] = [];
+            for (let i = 0; i < 6; i++) {
+              const canvas = images[i];
+              const faceTex = new THREE.CanvasTexture(canvas);
+              faceTex.flipY = false;
+              faceTex.wrapS = THREE.ClampToEdgeWrapping;
+              faceTex.wrapT = THREE.ClampToEdgeWrapping;
+              faceTex.magFilter = THREE.LinearFilter;
+              faceTex.minFilter = THREE.LinearFilter;
+
+              const m = new THREE.MeshPhysicalMaterial({
+                color: new THREE.Color(color[0], color[1], color[2]),
+                transparent: color[3] < 1.0,
+                opacity: color[3],
+                specularIntensity: mjModel.geom_matid[g] != -1 ? mjModel.mat_specular?.[mjModel.geom_matid[g]] : null,
+                reflectivity: mjModel.geom_matid[g] != -1 ? mjModel.mat_reflectance?.[mjModel.geom_matid[g]] : null,
+                roughness: mjModel.geom_matid[g] != -1 && mjModel.mat_shininess ? 1.0 - mjModel.mat_shininess[mjModel.geom_matid[g]] : null,
+                metalness: mjModel.geom_matid[g] != -1 ? mjModel.mat_specular?.[mjModel.geom_matid[g]] : 0.1,
+                map: faceTex,
+              });
+              materials.push(m);
+            }
+            currentMaterial = materials;
+          } else {
+            // Fallback: treat as environment map if images missing
+            (currentMaterial as THREE.MeshPhysicalMaterial).envMap = texture;
+            (currentMaterial as THREE.MeshPhysicalMaterial).envMapIntensity = mjModel.geom_matid[g] != -1 ? mjModel.mat_reflectance?.[mjModel.geom_matid[g]] || 0.5 : 0.5;
+          }
+        } else {
+          // Non-box geoms: use cube as environment map
+          (currentMaterial as THREE.MeshPhysicalMaterial).envMap = texture;
+          (currentMaterial as THREE.MeshPhysicalMaterial).envMapIntensity = mjModel.geom_matid[g] != -1 ? mjModel.mat_reflectance?.[mjModel.geom_matid[g]] || 0.5 : 0.5;
+        }
       }
     }
 
-    material = currentMaterial;
+    material = currentMaterial as any;
 
     // Only create mesh if geometry is defined
     if (!geometry) {
@@ -352,7 +400,7 @@ export async function loadSceneFromURL(mujoco: any, filename: string, parent: an
       continue;
     }
 
-    let mesh = new THREE.Mesh(geometry, currentMaterial);
+    let mesh = new THREE.Mesh(geometry, currentMaterial as any);
 
     mesh.castShadow = g == 0 ? false : true;
     mesh.receiveShadow = type != mujoco.mjtGeom.mjGEOM_MESH.value;
