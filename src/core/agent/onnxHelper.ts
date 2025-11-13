@@ -1,10 +1,4 @@
-// import * as ort from 'https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/esm/ort.wasm.min.js';
-// import * as ort from './ort/dist/ort.wasm.min.js';
 import * as ort from 'onnxruntime-web';
-
-// import wasmUrl from 'onnxruntime-web/dist/ort-wasm-simd-threaded.wasm?url';
-
-// ort.env.wasm.wasmPaths = "./ort/";
 
 export class ONNXModule {
   public modelPath: string;

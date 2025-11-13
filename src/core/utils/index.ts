@@ -3,4 +3,4 @@
  */
 
 export * from './Debug';
-export * from './configUtils';
+export * from './mujocoAssetCollector';
