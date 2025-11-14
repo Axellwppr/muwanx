@@ -60,9 +60,11 @@ export function useUrlSync(options: {
   // Handle project switching via hash navigation
   function goToRoute(r: { name: any; path: string }) {
     if (r.path) {
-      window.location.hash = r.path.replace('#', '');
-      // Reload to reinitialize MuJoCo runtime with new config
-      window.location.reload();
+      // Clear any existing query params when switching projects
+      const newHash = r.path.replace('#', '');
+      // Build clean URL with just the project hash (no query params)
+      const cleanUrl = window.location.origin + window.location.pathname + '#' + newHash;
+      window.location.href = cleanUrl;
     }
   }
 
