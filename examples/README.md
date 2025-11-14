@@ -10,10 +10,10 @@ examples/
 │   ├── config.json      # Main demo configuration
 │   ├── scene/           # MuJoCo scene files
 │   └── policy/          # Policy configurations and ONNX models
-├── App.vue              # Vue-based demo app
-├── main.ts              # Vue demo entry point
-└── router.ts            # Vue router configuration
+└── main.ts              # Single-file demo entry point (60 lines)
 ```
+
+The demo is intentionally kept as a **single TypeScript file** for simplicity. It handles project selection via URL hash and renders the full-featured MwxViewer component with all UI controls.
 
 ## Running the Demo
 
