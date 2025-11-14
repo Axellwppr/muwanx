@@ -4,7 +4,7 @@
   <div id="mujoco-container" class="mujoco-container" />
 
   <ControlPanel :project-name="projectName" :project-link="projectLink" :route-items="routeItems"
-    :current-route-name="$route.name" :is-mobile="isMobile" :task-items="taskItems" :task-id="task"
+    :current-route-name="null" :is-mobile="isMobile" :task-items="taskItems" :task-id="task"
     :policy-items="policyItems" :policy-id="policy" :selected-task="selectedTask" :selected-policy="selectedPolicy"
     :collapsed="isPanelCollapsed" :use-setpoint="use_setpoint" :command-vel-x="command_vel_x"
     :compliant-mode="compliant_mode" :facet-kp="facet_kp" @navigateRoute="goToRoute" @toggle="togglePanel"
@@ -25,7 +25,6 @@
 
 <script setup>
 import { onMounted, onBeforeUnmount, watch, ref, computed } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
 import ControlPanel from './components/ControlPanel.vue'
 import StatusDialogs from './components/StatusDialogs.vue'
 import HelpDialog from './components/HelpDialog.vue'
@@ -73,8 +72,6 @@ const projectName = computed(() => appConfig.value?.project_name)
 const projectLink = computed(() => appConfig.value?.project_link)
 
 const { routeItems, goToRoute, sync } = useUrlSync({
-  router: useRouter(),
-  route: useRoute(),
   getSceneName: () => selectedTask.value?.name || null,
   getPolicyName: () => selectedPolicy.value?.name || null,
 })

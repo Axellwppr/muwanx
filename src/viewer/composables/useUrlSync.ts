@@ -1,59 +1,60 @@
-import { computed, watch } from 'vue';
-import type { RouteLocationNormalizedLoaded, Router } from 'vue-router';
+import { computed } from 'vue';
 
 export function useUrlSync(options: {
-  router: Router;
-  route: RouteLocationNormalizedLoaded;
   getSceneName: () => string | null;
   getPolicyName: () => string | null;
 }) {
-  const { router, route, getSceneName, getPolicyName } = options;
+  const { getSceneName, getPolicyName } = options;
+
+  function getSearchParams() {
+    // Get search params from hash (e.g., #project?scene=x&policy=y)
+    const hashParts = window.location.hash.split('?');
+    if (hashParts.length > 1) {
+      return new URLSearchParams(hashParts[1]);
+    }
+    return new URLSearchParams();
+  }
 
   function sync() {
     try {
       const sceneName = getSceneName();
       const policyName = getPolicyName();
-      const currentQuery = { ...(route?.query || {}) } as Record<string, any>;
-      const nextQuery: Record<string, any> = { ...currentQuery };
+      const params = getSearchParams();
 
-      if (sceneName) nextQuery.scene = sceneName; else delete nextQuery.scene;
-      if (policyName) nextQuery.policy = policyName; else delete nextQuery.policy;
+      // Update params based on current state
+      if (sceneName) {
+        params.set('scene', sceneName);
+      } else {
+        params.delete('scene');
+      }
 
-      const changed = Object.keys({ ...currentQuery, ...nextQuery }).some(k => currentQuery[k] !== nextQuery[k])
-        || Object.keys(currentQuery).length !== Object.keys(nextQuery).length;
-      if (changed) {
-        router?.replace({ query: nextQuery });
+      if (policyName) {
+        params.set('policy', policyName);
+      } else {
+        params.delete('policy');
+      }
+
+      // Update URL hash with new params
+      const hashBase = window.location.hash.split('?')[0] || '#';
+      const paramsString = params.toString();
+      const newHash = paramsString ? `${hashBase}?${paramsString}` : hashBase;
+
+      if (window.location.hash !== newHash) {
+        window.history.replaceState(null, '', newHash);
       }
     } catch (e) {
       console.warn('Failed to sync URL with selection:', e);
     }
   }
 
+  // Return empty array since we don't have routes anymore
   const routeItems = computed(() => {
-    try {
-      const routes = (router?.getRoutes?.() || []).filter(r => r.name && r.path);
-      const seen = new Set<string>();
-      const items: { name: any; path: string; title: string }[] = [];
-      for (const r of routes) {
-        const key = String(r.name);
-        if (seen.has(key)) continue;
-        seen.add(key);
-        items.push({ name: r.name, path: r.path, title: key });
-      }
-      return items;
-    } catch {
-      return [] as { name: any; path: string; title: string }[];
-    }
+    return [] as { name: any; path: string; title: string }[];
   });
 
+  // No-op function since we don't have routes
   function goToRoute(r: { name: any; path: string }) {
-    try {
-      if (r?.path && r.name !== route?.name) {
-        router.push({ path: r.path });
-      }
-    } catch (e) {
-      console.warn('Failed to navigate route:', e);
-    }
+    // Do nothing - routes are not supported without Vue Router
   }
 
   return { sync, routeItems, goToRoute };
