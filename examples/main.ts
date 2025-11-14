@@ -15,14 +15,111 @@ const projects = [
   { id: 'default', name: 'Muwanx Demo', config: './assets/config.json' },
   { id: 'menagerie', name: 'MuJoCo Menagerie', config: './assets/config_mujoco_menagerie.json' },
   { id: 'playground', name: 'MuJoCo Playground', config: './assets/config_mujoco_playground.json' },
-  { id: 'myosuite', name: 'MyoSuite', config: './assets/config_myosuite.json' },
+  { id: 'myosuite', name: 'MyoSuite', config: null }, // Built imperatively
 ]
 
 // Get config path from URL hash
-function getConfigFromHash(): string {
+function getConfigFromHash(): string | null {
   const hash = window.location.hash.slice(1).split('?')[0] // Remove # and query params
   const project = projects.find(p => p.id === hash || `/${p.id}` === hash)
   return project ? project.config : projects[0].config
+}
+
+// Get project ID from URL hash
+function getProjectIdFromHash(): string {
+  const hash = window.location.hash.slice(1).split('?')[0]
+  const project = projects.find(p => p.id === hash || `/${p.id}` === hash)
+  return project ? project.id : projects[0].id
+}
+
+// Build MyoSuite project imperatively
+function buildMyoSuiteConfig() {
+  return {
+    project_name: "MyoSuite",
+    project_link: "https://github.com/MyoHub/myosuite",
+    tasks: [
+      {
+        id: "1",
+        name: "Hand",
+        model_xml: "./assets/scene/myosuite/myosuite/simhive/myo_sim/hand/myohand.xml",
+        asset_meta: "./assets/policy/myosuite/asset_meta_myohand.json",
+        default_policy: null,
+        policies: []
+      },
+      {
+        id: "2",
+        name: "Arm",
+        model_xml: "./assets/scene/myosuite/myosuite/simhive/myo_sim/arm/myoarm.xml",
+        asset_meta: "./assets/policy/myosuite/asset_meta_myoarm.json",
+        default_policy: null,
+        policies: []
+      },
+      {
+        id: "3",
+        name: "Elbow",
+        model_xml: "./assets/scene/myosuite/myosuite/simhive/myo_sim/elbow/myoelbow_2dof6muscles.xml",
+        asset_meta: "./assets/policy/myosuite/asset_meta_myoelbow.json",
+        default_policy: null,
+        policies: []
+      },
+      {
+        id: "4",
+        name: "Legs",
+        model_xml: "./assets/scene/myosuite/myosuite/simhive/myo_sim/leg/myolegs.xml",
+        asset_meta: "./assets/policy/myosuite/asset_meta_myolegs.json",
+        default_policy: null,
+        policies: []
+      },
+      {
+        id: "5",
+        name: "mc23_Relocate",
+        model_xml: "./assets/scene/myosuite/myosuite/envs/myo/assets/arm/myoarm_relocate.xml",
+        asset_meta: "./assets/policy/myosuite/asset_meta_relocate.json",
+        default_policy: null,
+        policies: []
+      },
+      {
+        id: "6",
+        name: "mc23_ChaseTag",
+        model_xml: "./assets/scene/myosuite/myosuite/envs/myo/assets/leg/myolegs_chasetag.xml",
+        asset_meta: "./assets/policy/myosuite/asset_meta_chasetag.json",
+        default_policy: null,
+        policies: []
+      },
+      {
+        id: "7",
+        name: "mc24_Bimanual",
+        model_xml: "./assets/scene/myosuite/myosuite/envs/myo/assets/arm/myoarm_bionic_bimanual.xml",
+        asset_meta: "./assets/policy/myosuite/asset_meta_bimanual.json",
+        default_policy: null,
+        policies: []
+      },
+      {
+        id: "8",
+        name: "mc24_RunTrack",
+        model_xml: "./assets/scene/myosuite/myosuite/envs/myo/assets/leg/myoosl_runtrack.xml",
+        asset_meta: "./assets/policy/myosuite/asset_meta_runtrack.json",
+        default_policy: null,
+        policies: []
+      },
+      {
+        id: "9",
+        name: "mc25_TableTennis",
+        model_xml: "./assets/scene/myosuite/myosuite/envs/myo/assets/arm/myoarm_tabletennis.xml",
+        asset_meta: "./assets/policy/myosuite/asset_meta_tabletennis.json",
+        default_policy: null,
+        policies: []
+      },
+      {
+        id: "10",
+        name: "mc25_Soccer",
+        model_xml: "./assets/scene/myosuite/myosuite/envs/myo/assets/leg_soccer/myolegs_soccer.xml",
+        asset_meta: "./assets/policy/myosuite/asset_meta_soccer.json",
+        default_policy: null,
+        policies: []
+      }
+    ]
+  }
 }
 
 // Load and build viewer using imperative API
@@ -79,12 +176,22 @@ async function buildViewer(containerEl: HTMLElement, configPath: string) {
 const App = {
   setup() {
     const configPath = getConfigFromHash()
+    const projectId = getProjectIdFromHash()
     const configObject = ref(null)
 
     // Load and build config using imperative approach
     async function loadImperativeConfig() {
-      const response = await fetch(configPath)
-      const legacyConfig: LegacyAppConfig = await response.json()
+      let legacyConfig: LegacyAppConfig
+
+      // MyoSuite is built imperatively, others load from config files
+      if (projectId === 'myosuite') {
+        legacyConfig = buildMyoSuiteConfig()
+      } else if (configPath) {
+        const response = await fetch(configPath)
+        legacyConfig = await response.json()
+      } else {
+        return
+      }
 
       // Build config object imperatively (demonstrating the pattern)
       configObject.value = {
@@ -120,7 +227,7 @@ const App = {
     }, [
       configObject.value ? h(MwxViewerComponent, {
         config: configObject.value,
-        key: configPath // Force re-mount on config change
+        key: projectId // Force re-mount on config change
       }) : h('div', 'Loading...')
     ])
   }
