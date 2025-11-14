@@ -47,14 +47,23 @@ export function useUrlSync(options: {
     }
   }
 
-  // Return empty array since we don't have routes anymore
+  // Define available projects for the dropdown
   const routeItems = computed(() => {
-    return [] as { name: any; path: string; title: string }[];
+    return [
+      { name: 'default', path: '#', title: 'Muwanx Demo' },
+      { name: 'menagerie', path: '#menagerie', title: 'MuJoCo Menagerie' },
+      { name: 'playground', path: '#playground', title: 'MuJoCo Playground' },
+      { name: 'myosuite', path: '#myosuite', title: 'MyoSuite' },
+    ];
   });
 
-  // No-op function since we don't have routes
+  // Handle project switching via hash navigation
   function goToRoute(r: { name: any; path: string }) {
-    // Do nothing - routes are not supported without Vue Router
+    if (r.path) {
+      window.location.hash = r.path.replace('#', '');
+      // Reload to reinitialize MuJoCo runtime with new config
+      window.location.reload();
+    }
   }
 
   return { sync, routeItems, goToRoute };

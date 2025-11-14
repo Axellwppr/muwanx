@@ -4,7 +4,7 @@
   <div id="mujoco-container" class="mujoco-container" />
 
   <ControlPanel :project-name="projectName" :project-link="projectLink" :route-items="routeItems"
-    :current-route-name="null" :is-mobile="isMobile" :task-items="taskItems" :task-id="task"
+    :current-route-name="currentRouteName" :is-mobile="isMobile" :task-items="taskItems" :task-id="task"
     :policy-items="policyItems" :policy-id="policy" :selected-task="selectedTask" :selected-policy="selectedPolicy"
     :collapsed="isPanelCollapsed" :use-setpoint="use_setpoint" :command-vel-x="command_vel_x"
     :compliant-mode="compliant_mode" :facet-kp="facet_kp" @navigateRoute="goToRoute" @toggle="togglePanel"
@@ -74,6 +74,13 @@ const projectLink = computed(() => appConfig.value?.project_link)
 const { routeItems, goToRoute, sync } = useUrlSync({
   getSceneName: () => selectedTask.value?.name || null,
   getPolicyName: () => selectedPolicy.value?.name || null,
+})
+
+// Detect current route from URL hash
+const currentRouteName = computed(() => {
+  const hash = window.location.hash.slice(1).split('?')[0] // Remove # and query params
+  if (!hash || hash === '' || hash === '/') return 'default'
+  return hash.replace('/', '') // Remove leading slash if present
 })
 
 const { selectTask, selectPolicy, navigateScene, navigatePolicy } = useScenePolicy({
