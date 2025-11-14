@@ -1,17 +1,17 @@
 /**
  * main.ts
  *
- * Bootstraps Vuetify and other plugins then mounts the App
+ * Simple entry point for the demo app using imperative API
  */
 
-import { registerPlugins } from '@/viewer/plugins'
-import router from './router'
-import App from './App.vue'
 import { createApp } from 'vue'
+import App from './App.vue'
+import { registerPlugins } from '@/viewer/plugins'
 import 'unfonts.css'
 
 const app = createApp(App)
 
-registerPlugins(app, router)
+// Register Vuetify and other plugins (needed for UI components)
+registerPlugins(app)
 
 app.mount('#app')
