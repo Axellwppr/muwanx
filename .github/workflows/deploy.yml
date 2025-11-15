@@ -1,8 +1,5 @@
 name: GitHub Pages CI
 
-# Version numbers are managed in version.json
-# Update version.json to change versions across the project
-
 on:
   push:
     branches: [ main ]
@@ -22,30 +19,30 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-
+    
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4  # version.json: actions.checkout
+      uses: actions/checkout@v4
       with:
         submodules: recursive
-
+      
     - name: Setup Node.js
-      uses: actions/setup-node@v4  # version.json: actions.setup-node
+      uses: actions/setup-node@v4
       with:
-        node-version: '20'  # version.json: node
+        node-version: '20'
         cache: 'npm'
-
+        
     - name: Install dependencies
       run: npm ci
-
+      
     - name: Build demo application
       run: npm run build:demo
-
+      
     - name: Setup Pages
-      uses: actions/configure-pages@v4  # version.json: actions.configure-pages
-
+      uses: actions/configure-pages@v4
+      
     - name: Upload artifact
-      uses: actions/upload-pages-artifact@v3  # version.json: actions.upload-pages-artifact
+      uses: actions/upload-pages-artifact@v3
       with:
         path: './dist'
 
@@ -55,8 +52,8 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     needs: build
-
+    
     steps:
     - name: Deploy to GitHub Pages
       id: deployment
-      uses: actions/deploy-pages@v4  # version.json: actions.deploy-pages
+      uses: actions/deploy-pages@v4
