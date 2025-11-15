@@ -1,7 +1,7 @@
 {
   "name": "muwanx",
   "type": "module",
-  "version": "0.0.0",
+  "version": "0.1.1",
   "repository": {
     "type": "git",
     "url": "https://github.com/ttktjmt/muwanx.git"
@@ -39,7 +39,11 @@
     "build": "vite build",
     "build:demo": "vite build",
     "build:lib": "BUILD_MODE=lib vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "version:sync": "node scripts/sync-version.js",
+    "prebuild": "npm run version:sync",
+    "prebuild:demo": "npm run version:sync",
+    "prebuild:lib": "npm run version:sync"
   },
   "dependencies": {
     "@fontsource/roboto": "5.2.5",
