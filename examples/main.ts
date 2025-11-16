@@ -33,7 +33,7 @@ function getProjectIdFromHash(): string {
 }
 
 // Build base MyoSuite config (declarative approach for basic scenes)
-function buildBaseMyoSuiteConfig() {
+function buildBaseMyoSuiteConfig(): LegacyAppConfig {
   return {
     project_name: "MyoSuite",
     project_link: "https://github.com/MyoHub/myosuite",
@@ -43,10 +43,10 @@ function buildBaseMyoSuiteConfig() {
         name: "Hand",
         model_xml: "./assets/scene/myosuite/myosuite/simhive/myo_sim/hand/myohand.xml",
         camera: {
-          position: [0.4, 1.6, 1.4],
-          target: [-0.1, 1.4, 0.4]
+          position: [0.4, 1.6, 1.4] as [number, number, number],
+          target: [-0.1, 1.4, 0.4] as [number, number, number]
         },
-        default_policy: null,
+        default_policy: undefined,
         policies: []
       },
       {
@@ -54,10 +54,10 @@ function buildBaseMyoSuiteConfig() {
         name: "Arm",
         model_xml: "./assets/scene/myosuite/myosuite/simhive/myo_sim/arm/myoarm.xml",
         camera: {
-          position: [-0.8, 1.7, 1.4],
-          target: [-0.3, 1.3, 0.2]
+          position: [-0.8, 1.7, 1.4] as [number, number, number],
+          target: [-0.3, 1.3, 0.2] as [number, number, number]
         },
-        default_policy: null,
+        default_policy: undefined,
         policies: []
       },
       {
@@ -65,10 +65,10 @@ function buildBaseMyoSuiteConfig() {
         name: "Elbow",
         model_xml: "./assets/scene/myosuite/myosuite/simhive/myo_sim/elbow/myoelbow_2dof6muscles.xml",
         camera: {
-          position: [-1.5, 1.7, 1.0],
-          target: [-0.5, 1.3, 0.2]
+          position: [-1.5, 1.7, 1.0] as [number, number, number],
+          target: [-0.5, 1.3, 0.2] as [number, number, number]
         },
-        default_policy: null,
+        default_policy: undefined,
         policies: []
       },
       {
@@ -76,10 +76,10 @@ function buildBaseMyoSuiteConfig() {
         name: "Legs",
         model_xml: "./assets/scene/myosuite/myosuite/simhive/myo_sim/leg/myolegs.xml",
         camera: {
-          position: [-1.5, 1.5, 1.9],
-          target: [0, 0.9, 0]
+          position: [-1.5, 1.5, 1.9] as [number, number, number],
+          target: [0, 0.9, 0] as [number, number, number]
         },
-        default_policy: null,
+        default_policy: undefined,
         policies: []
       }
     ]
@@ -190,57 +190,6 @@ function addMyoChallengeScenes(baseConfig: LegacyAppConfig): LegacyAppConfig {
       }))
     }))
   }
-}
-
-// Load and build viewer using imperative API
-async function buildViewer(containerEl: HTMLElement, configPath: string) {
-  // Fetch the config file
-  const response = await fetch(configPath)
-  const config: LegacyAppConfig = await response.json()
-
-  // Create viewer instance (headless - no Vue component)
-  const viewer = new MwxViewer(containerEl)
-
-  // Build project using imperative API
-  const project = viewer.addProject({
-    project_name: config.project_name,
-    project_link: config.project_link,
-  })
-
-  // Add scenes (tasks in legacy config)
-  if (config.tasks) {
-    for (const task of config.tasks) {
-      const scene = project.addScene({
-        id: task.id,
-        name: task.name,
-        model_xml: task.model_xml,
-        asset_meta: task.asset_meta,
-        camera: task.camera,
-      })
-
-      // Set default policy if specified
-      if (task.default_policy) {
-        scene.setDefaultPolicy(task.default_policy)
-      }
-
-      // Add policies to scene
-      if (task.policies) {
-        for (const policyConfig of task.policies) {
-          scene.addPolicy({
-            id: policyConfig.id,
-            name: policyConfig.name,
-            path: policyConfig.path,
-            ui_controls: policyConfig.ui_controls,
-          })
-        }
-      }
-    }
-  }
-
-  // Initialize the viewer
-  await viewer.initialize()
-
-  return viewer
 }
 
 // Create root component inline
