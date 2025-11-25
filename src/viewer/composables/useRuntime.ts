@@ -19,6 +19,7 @@ export interface UseRuntimeReturn {
   command_vel_x: Ref<number>;
   use_setpoint: Ref<boolean>;
   compliant_mode: Ref<boolean>;
+  drag_force_scale: Ref<number>;
   state: Ref<number>;
   extra_error_message: Ref<string>;
   initRuntime: (initialTask: TaskConfigItem, initialPolicy: PolicyConfigItem | null) => Promise<void>;
@@ -30,6 +31,7 @@ export interface UseRuntimeReturn {
   updateUseSetpoint: () => void;
   updateCommandVelX: () => void;
   updateCompliantMode: () => void;
+  updateDragForceScale: () => void;
   triggerImpulse: () => void;
   toggleVRButton: () => void;
   dispose: () => void;
@@ -46,6 +48,7 @@ export function useRuntime(): UseRuntimeReturn {
   const command_vel_x = ref<number>(0.0);
   const use_setpoint = ref<boolean>(true);
   const compliant_mode = ref<boolean>(false);
+  const drag_force_scale = ref<number>(25);
 
   const state = ref<number>(0);
   const extra_error_message = ref<string>('');
@@ -252,6 +255,11 @@ export function useRuntime(): UseRuntimeReturn {
     facet_kp.value = (runtime.value as any)?.params?.impedance_kp ?? facet_kp.value;
   }
 
+  function updateDragForceScale() {
+    if (!envManager.value) return;
+    envManager.value.dragForceScale = drag_force_scale.value;
+  }
+
   function triggerImpulse() {
     if (!commandManager.value) return;
     commandManager.value.triggerImpulse();
@@ -285,6 +293,7 @@ export function useRuntime(): UseRuntimeReturn {
     command_vel_x,
     use_setpoint,
     compliant_mode,
+    drag_force_scale,
     state,
     extra_error_message,
 
@@ -298,6 +307,7 @@ export function useRuntime(): UseRuntimeReturn {
     updateUseSetpoint,
     updateCommandVelX,
     updateCompliantMode,
+    updateDragForceScale,
     triggerImpulse,
     toggleVRButton,
     dispose,

@@ -46,6 +46,30 @@
             <div class="shortcut-description">Next / Previous policy</div>
           </div>
         </div>
+
+        <v-divider class="my-4"></v-divider>
+
+        <div class="help-title">Drag Force Scale</div>
+        <div class="settings-section">
+          <div class="setting-item">
+            <div class="setting-control">
+              <v-slider
+                :model-value="logDragForceScale"
+                @update:model-value="handleDragForceScaleUpdate"
+                :min="0"
+                :max="10"
+                :step="0.1"
+                hide-details
+                density="compact"
+                thumb-label
+              >
+                <template #thumb-label="{ modelValue }">
+                  {{ Math.pow(2, modelValue).toFixed(1) }}
+                </template>
+              </v-slider>
+            </div>
+          </div>
+        </div>
       </v-card-text>
     </v-card>
   </v-dialog>
@@ -57,9 +81,19 @@ const props = defineProps({
   modelValue: { type: Boolean, default: false },
   isMobile: { type: Boolean, default: false },
   showButton: { type: Boolean, default: false },
+  dragForceScale: { type: Number, default: 25 },
 })
-const emit = defineEmits(['update:modelValue', 'toggleHelp', 'toggleUI', 'toggleVRButton', 'reset', 'navigateScene', 'navigatePolicy'])
+const emit = defineEmits(['update:modelValue', 'update:dragForceScale', 'toggleHelp', 'toggleUI', 'toggleVRButton', 'reset', 'navigateScene', 'navigatePolicy'])
 const model = computed({ get: () => props.modelValue, set: (v) => emit('update:modelValue', v) })
+
+// Convert drag force scale to log2 scale (0-10 representing 2^0=1 to 2^10=1024)
+const logDragForceScale = computed(() => Math.log2(props.dragForceScale))
+
+// Convert from log scale back to linear scale
+const handleDragForceScaleUpdate = (logValue) => {
+  const linearValue = Math.pow(2, logValue)
+  emit('update:dragForceScale', linearValue)
+}
 </script>
 
 <style scoped>
@@ -111,6 +145,30 @@ const model = computed({ get: () => props.modelValue, set: (v) => emit('update:m
   flex: 1;
   font-size: 14px;
   color: var(--ui-muted);
+}
+
+.settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.setting-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.setting-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ui-text);
+}
+
+.setting-control {
+  width: 100%;
+  padding: 0 20px;
+  margin: 0 auto;
 }
 </style>
 

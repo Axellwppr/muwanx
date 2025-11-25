@@ -19,6 +19,8 @@
   <Notice />
 
   <HelpDialog v-model="showHelpDialog" :is-mobile="isMobile" :show-button="!isMobile || isPanelCollapsed"
+    :drag-force-scale="drag_force_scale"
+    @update:dragForceScale="onUpdateDragForceScale"
     @toggleHelp="() => (showHelpDialog = !showHelpDialog)" @toggleUI="toggleUIVisibility"
     @toggleVRButton="toggleVRButton" @reset="reset" @navigateScene="navigateScene" @navigatePolicy="navigatePolicy" />
 </template>
@@ -57,6 +59,7 @@ const {
   command_vel_x,
   compliant_mode,
   facet_kp,
+  drag_force_scale,
   initRuntime,
   onTaskChange,
   onPolicyChange,
@@ -64,6 +67,7 @@ const {
   updateUseSetpoint,
   updateCommandVelX,
   updateCompliantMode,
+  updateDragForceScale,
   triggerImpulse,
   toggleVRButton,
   reset,
@@ -127,6 +131,11 @@ function onUpdateFacetKp(v) {
 function onUpdateCompliantMode(v) {
   compliant_mode.value = v
   updateCompliantMode()
+}
+
+function onUpdateDragForceScale(v) {
+  drag_force_scale.value = v
+  updateDragForceScale()
 }
 
 function clearUrlWarning() { urlParamErrorMessage.value = '' }
