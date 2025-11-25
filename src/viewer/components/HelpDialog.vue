@@ -49,21 +49,24 @@
 
         <v-divider class="my-4"></v-divider>
 
-        <div class="help-title">Robot Control Settings</div>
+        <div class="help-title">Drag Force Scale</div>
         <div class="settings-section">
           <div class="setting-item">
-            <div class="setting-label">Drag Force Strength</div>
             <div class="setting-control">
               <v-slider
-                :model-value="dragForceScale"
-                @update:model-value="(v) => emit('update:dragForceScale', v)"
-                :min="1"
-                :max="100"
-                :step="1"
+                :model-value="logDragForceScale"
+                @update:model-value="handleDragForceScaleUpdate"
+                :min="0"
+                :max="10"
+                :step="0.1"
                 hide-details
                 density="compact"
                 thumb-label
-              ></v-slider>
+              >
+                <template #thumb-label="{ modelValue }">
+                  {{ Math.pow(2, modelValue).toFixed(1) }}
+                </template>
+              </v-slider>
             </div>
           </div>
         </div>
@@ -82,6 +85,15 @@ const props = defineProps({
 })
 const emit = defineEmits(['update:modelValue', 'update:dragForceScale', 'toggleHelp', 'toggleUI', 'toggleVRButton', 'reset', 'navigateScene', 'navigatePolicy'])
 const model = computed({ get: () => props.modelValue, set: (v) => emit('update:modelValue', v) })
+
+// Convert drag force scale to log2 scale (0-10 representing 2^0=1 to 2^10=1024)
+const logDragForceScale = computed(() => Math.log2(props.dragForceScale))
+
+// Convert from log scale back to linear scale
+const handleDragForceScaleUpdate = (logValue) => {
+  const linearValue = Math.pow(2, logValue)
+  emit('update:dragForceScale', linearValue)
+}
 </script>
 
 <style scoped>
@@ -155,6 +167,8 @@ const model = computed({ get: () => props.modelValue, set: (v) => emit('update:m
 
 .setting-control {
   width: 100%;
+  padding: 0 20px;
+  margin: 0 auto;
 }
 </style>
 
