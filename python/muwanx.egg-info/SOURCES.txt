@@ -1,0 +1,10 @@
+MANIFEST.in
+README.md
+pyproject.toml
+./muwanx/__init__.py
+muwanx/__init__.py
+muwanx.egg-info/PKG-INFO
+muwanx.egg-info/SOURCES.txt
+muwanx.egg-info/dependency_links.txt
+muwanx.egg-info/requires.txt
+muwanx.egg-info/top_level.txt

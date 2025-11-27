@@ -1,0 +1,2 @@
+mujoco>=3.0.0
+onnxruntime>=1.16.0

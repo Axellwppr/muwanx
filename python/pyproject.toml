@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "muwanx"
+version = "0.0.2"
+authors = [
+    {name = "Tatsuki Tsujimoto", email = "tatsuki.tsujimoto@gmail.com"},
+]
+description = "Browser-based MuJoCo simulation with real-time policy control"
+readme = "README.md"
+requires-python = ">=3.9"
+license = "Apache-2.0"
+keywords = ["mujoco", "onnx", "reinforcement-learning", "robotics"]
+classifiers = [
+    "Development Status :: 1 - Planning",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Natural Language :: English",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering",
+]
+dependencies = [
+    "mujoco>=3.0.0",
+    "onnxruntime>=1.16.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/ttktjmt/muwanx"
+Documentation = "https://github.com/ttktjmt/muwanx"
+Repository = "https://github.com/ttktjmt/muwanx"
+
+[tool.setuptools]
+package-dir = {"" = "."}
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["muwanx*"]
