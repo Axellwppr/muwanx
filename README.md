@@ -68,6 +68,16 @@ npm install muwanx
 
 Please refer to the [usage guide](docs/usage.md) for detailed instructions on building applications with muwanx.
 
+## Python SDK
+
+A [Python SDK](https://pypi.org/project/muwanx/) is also available for programmatic control of muwanx simulations.
+
+```bash
+pip install muwanx
+```
+
+See the [python/README.md](python/README.md) for installation and usage instructions.
+
 ## Third-Party Assets
 
 Muwanx incorporates mujoco models from the external sources in its demo. See the respective submodule for full details, including individual model licenses and copyrights. All models are used under their respective licenses. Please review and comply with those terms for any use or redistribution.
