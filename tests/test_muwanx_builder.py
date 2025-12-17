@@ -52,20 +52,26 @@ def test_multiple_projects():
 
 def test_build_app():
     """Test building an application."""
+    import tempfile
+
     builder = mwx.Builder()
     builder.add_project(name="Test Project")
 
-    app = builder.build()
-    assert app is not None
-    assert isinstance(app, mwx.MuwanxApp)
+    with tempfile.TemporaryDirectory() as tmpdir:
+        app = builder.build(tmpdir)
+        assert app is not None
+        assert isinstance(app, mwx.MuwanxApp)
 
 
 def test_build_empty_app_warning():
     """Test that building an empty app raises a warning."""
+    import tempfile
+
     builder = mwx.Builder()
 
-    with pytest.warns(UserWarning, match="Building an empty application"):
-        app = builder.build()
+    with tempfile.TemporaryDirectory() as tmpdir:
+        with pytest.warns(UserWarning, match="Building an empty application"):
+            app = builder.build(tmpdir)
 
     assert app is not None
 
@@ -147,11 +153,9 @@ def test_app_save_includes_project_id():
     builder.add_project(name="Main Demo")
     builder.add_project(name="MuJoCo Menagerie", id="menagerie")
 
-    app = builder.build()
-
     with tempfile.TemporaryDirectory() as tmpdir:
-        output_path = app.save(tmpdir, format="json")
-        config_file = Path(output_path) / "config.json"
+        builder.build(tmpdir)
+        config_file = Path(tmpdir) / "config.json"
 
         with open(config_file) as f:
             config = json.load(f)

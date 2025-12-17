@@ -6,8 +6,14 @@ for programmatically creating interactive MuJoCo simulations.
 
 from __future__ import annotations
 
+import inspect
+import json
 import warnings
+from pathlib import Path
 from typing import Any
+
+import mujoco
+import onnx
 
 from .app import MuwanxApp
 from .project import ProjectConfig, ProjectHandle
@@ -42,8 +48,8 @@ class Builder:
         ... )
         >>>
         >>> # Build and save
-        >>> app = builder.build()
-        >>> app.save("my_app")
+        >>> app = builder.build("my_app")
+        >>> app.launch()
     """
 
     def __init__(self) -> None:
@@ -83,21 +89,27 @@ class Builder:
         self._projects.append(project_config)
         return ProjectHandle(project_config, self)
 
-    def build(self) -> MuwanxApp:
+    def build(self, output_dir: str | Path | None = None) -> MuwanxApp:
         """Build the application from the configured projects.
 
         This method finalizes the configuration and creates a MuwanxApp
-        instance that can be saved or launched.
+        instance. If output_dir is provided, it also saves the application
+        to that directory. If output_dir is not provided, it defaults to
+        'dist' in the caller's directory.
+
+        Args:
+            output_dir: Optional directory to save the application files.
+                       If None, defaults to 'dist' in the caller's directory.
 
         Returns:
-            MuwanxApp instance ready to be saved or launched.
+            MuwanxApp instance ready to be launched.
 
         Example:
             >>> builder = mwx.Builder()
             >>> project = builder.add_project("My Project")
             >>> # ... configure scenes and policies ...
-            >>> app = builder.build()
-            >>> app.save("output")
+            >>> app = builder.build() # Saves to ./dist
+            >>> app.launch()
         """
         if not self._projects:
             warnings.warn(
@@ -107,7 +119,120 @@ class Builder:
                 stacklevel=2,
             )
 
-        return MuwanxApp(self._projects)
+        # Get caller's file path
+        frame = inspect.stack()[1]
+        caller_file = frame.filename
+        # Handle REPL or interactive mode where filename might be <stdin> or similar
+        if caller_file.startswith("<") and caller_file.endswith(">"):
+            base_dir = Path.cwd()
+        else:
+            base_dir = Path(caller_file).parent
+
+        if output_dir is None:
+            output_path = base_dir / "dist"
+        else:
+            # Resolve relative paths against the caller's directory
+            output_path = base_dir / Path(output_dir)
+
+        self._save_web(output_path)
+
+        return MuwanxApp(output_path)
+
+    def _save_json(self, output_path: Path) -> None:
+        """Save configuration as JSON."""
+        config = {
+            "version": "0.0.0",
+            "projects": [
+                {
+                    "name": project.name,
+                    "id": project.id,
+                    "metadata": project.metadata,
+                    "scenes": [
+                        {
+                            "name": scene.name,
+                            "metadata": scene.metadata,
+                            "policies": [
+                                {
+                                    "name": policy.name,
+                                    "metadata": policy.metadata,
+                                }
+                                for policy in scene.policies
+                            ],
+                        }
+                        for scene in project.scenes
+                    ],
+                }
+                for project in self._projects
+            ],
+        }
+
+        config_file = output_path / "config.json"
+        with open(config_file, "w") as f:
+            json.dump(config, f, indent=2)
+
+    def _save_web(self, output_path: Path) -> None:
+        """Save as a complete web application."""
+        if output_path.exists():
+            # Clean up existing directory if needed, or just overwrite
+            # For now we just overwrite, but maybe we should warn?
+            # The previous implementation had an overwrite flag.
+            pass
+
+        output_path.mkdir(parents=True, exist_ok=True)
+
+        # Copy template directory
+        import shutil
+
+        template_dir = Path(__file__).parent / "template"
+        if template_dir.exists():
+            # Copy all files from template to output_path
+            # We use shutil.copytree with dirs_exist_ok=True (Python 3.8+)
+            shutil.copytree(template_dir, output_path, dirs_exist_ok=True)
+        else:
+            warnings.warn(
+                f"Template directory not found at {template_dir}.",
+                category=RuntimeWarning,
+            )
+
+        # Create directory structure
+        assets_dir = output_path / "assets"
+        scene_dir = assets_dir / "scene"
+        policy_dir = assets_dir / "policy"
+
+        assets_dir.mkdir(exist_ok=True)
+        scene_dir.mkdir(exist_ok=True)
+        policy_dir.mkdir(exist_ok=True)
+
+        # Save configuration
+        self._save_json(output_path)
+
+        # Save MuJoCo models and ONNX policies
+        for project in self._projects:
+            project_name = self._sanitize_name(project.name)
+
+            for scene in project.scenes:
+                scene_name = self._sanitize_name(scene.name)
+                scene_path = scene_dir / project_name / scene_name
+                scene_path.mkdir(parents=True, exist_ok=True)
+
+                # Save MuJoCo model
+                # mj_saveLastXML writes directly to file, so we provide the full path
+                scene_xml_path = str(scene_path / "scene.xml")
+                mujoco.mj_saveLastXML(scene_xml_path, scene.model)
+
+                # Save policies
+                for policy in scene.policies:
+                    policy_name = self._sanitize_name(policy.name)
+                    policy_path = policy_dir / project_name / scene_name
+                    policy_path.mkdir(parents=True, exist_ok=True)
+
+                    onnx.save(policy.model, str(policy_path / f"{policy_name}.onnx"))
+
+        print(f"✓ Saved muwanx application to: {output_path}")
+
+    def _sanitize_name(self, name: str) -> str:
+        """Sanitize a name for use as a filename."""
+        return name.lower().replace(" ", "_").replace("-", "_")
 
     def get_projects(self) -> list[ProjectConfig]:
         """Get a copy of all project configurations.

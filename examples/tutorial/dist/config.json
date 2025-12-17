@@ -1,0 +1,17 @@
+{
+  "version": "0.0.0",
+  "projects": [
+    {
+      "name": "Hello World",
+      "id": null,
+      "metadata": {},
+      "scenes": [
+        {
+          "name": "Box over Plane",
+          "metadata": {},
+          "policies": []
+        }
+      ]
+    }
+  ]
+}

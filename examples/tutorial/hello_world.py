@@ -32,11 +32,8 @@ def main():
     # Build the application
     app = builder.build()
 
-    # Save to disk
-    app.save("hello_world")
-
-    # Or launch in browser (not yet implemented)
-    # app.launch()
+    # Launch in browser
+    app.launch()
 
     print("✓ Builder example completed successfully!")
     print(f"  - Projects: {len(builder.get_projects())}")
