@@ -22,7 +22,7 @@ https://ttktjmt.github.io/muwanx/#/?scene=Go2&policy=Robust&hidectrl=1
 https://ttktjmt.github.io/muwanx/#/?scene=<scene_name>&policy=<policy_name>&hidectrl=1
 ```
 ⚠️ Query parameters **must** be placed after the hash (#). Placing them before the hash will not work:
-`https://ttktjmt.github.io/muwanx?scene=go2`  
+`https://ttktjmt.github.io/muwanx?scene=go2`
 This sends the query to the GitHub Pages server, not to the app.
 
 ## Notes

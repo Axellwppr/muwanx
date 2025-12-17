@@ -5,7 +5,7 @@ import mujoco._structs
 import numpy
 import numpy.typing
 import typing
-__all__: list[str] = ['MjByteVec', 'MjCharVec', 'MjDoubleVec', 'MjFloatVec', 'MjIntVec', 'MjOption', 'MjSpec', 'MjStatistic', 'MjStringVec', 'MjVisual', 'MjVisualHeadlight', 'MjVisualRgba', 'MjsActuator', 'MjsBody', 'MjsCamera', 'MjsCompiler', 'MjsDefault', 'MjsElement', 'MjsEquality', 'MjsExclude', 'MjsFlex', 'MjsFrame', 'MjsGeom', 'MjsHField', 'MjsJoint', 'MjsKey', 'MjsLight', 'MjsMaterial', 'MjsMesh', 'MjsNumeric', 'MjsOrientation', 'MjsPair', 'MjsPlugin', 'MjsSensor', 'MjsSite', 'MjsSkin', 'MjsTendon', 'MjsText', 'MjsTexture', 'MjsTuple', 'MjsWrap']
+__all__: list[str] = ['MjByteVec', 'MjCharVec', 'MjDoubleVec', 'MjFloatVec', 'MjIntVec', 'MjOption', 'MjSpec', 'MjStatistic', 'MjStringVec', 'MjVisual', 'MjVisualHeadlight', 'MjVisualRgba', 'MjsActuator', 'MjsBody', 'MjsCamera', 'MjsCompiler', 'MjsDefault', 'MjsElement', 'MjsEquality', 'MjsExclude', 'MjsFlex', 'MjsFrame', 'MjsGeom', 'MjsHField', 'MjsJoint', 'MjsKey', 'MjsLight', 'MjsMaterial', 'MjsMesh', 'MjsNumeric', 'MjsOrientation', 'MjsPair', 'MjsPlugin', 'MjsSensor', 'MjsSite', 'MjsSkin', 'MjsTendon', 'MjsTendonPath', 'MjsText', 'MjsTexture', 'MjsTuple', 'MjsWrap']
 class MjByteVec:
     def __getitem__(self, arg0: typing.SupportsInt) -> ...:
         ...
@@ -62,12 +62,6 @@ class MjIntVec:
     def __setitem__(self, arg0: typing.SupportsInt, arg1: typing.SupportsInt) -> None:
         ...
 class MjOption:
-    @property
-    def apirate(self) -> float:
-        ...
-    @apirate.setter
-    def apirate(self, arg1: typing.SupportsFloat) -> None:
-        ...
     @property
     def ccd_iterations(self) -> int:
         ...
@@ -207,6 +201,12 @@ class MjOption:
     def sdf_iterations(self, arg1: typing.SupportsInt) -> None:
         ...
     @property
+    def sleep_tolerance(self) -> float:
+        ...
+    @sleep_tolerance.setter
+    def sleep_tolerance(self, arg1: typing.SupportsFloat) -> None:
+        ...
+    @property
     def solver(self) -> int:
         ...
     @solver.setter
@@ -252,7 +252,7 @@ class MjSpec:
     def from_file(filename: str, include: collections.abc.Mapping[str, bytes] | None = None, assets: dict | None = None) -> MjSpec:
         """
             Creates a spec from an XML file.
-        
+
             Parameters
             ----------
             filename : str
@@ -268,7 +268,7 @@ class MjSpec:
     def from_string(xml: str, include: collections.abc.Mapping[str, bytes] | None = None, assets: dict | None = None) -> MjSpec:
         """
             Creates a spec from an XML string.
-        
+
             Parameters
             ----------
             xml : str
@@ -284,7 +284,7 @@ class MjSpec:
     def from_zip(file: typing.Union[str, typing.IO[bytes]]) -> MjSpec:
         """
         Reads a zip file and returns an MjSpec.
-        
+
         Args:
           file: The path to the file to read from or the file object to read from.
         Returns:
@@ -297,7 +297,7 @@ class MjSpec:
     def to_zip(spec: MjSpec, file: typing.Union[str, typing.IO[bytes]]) -> None:
         """
         Converts an MjSpec to a zip file.
-        
+
         Args:
           spec: The mjSpec to save to a file.
           file: The path to the file to save to or the file object to write to.
@@ -1041,6 +1041,7 @@ class MjsBody:
     info: str
     name: str
     plugin: MjsPlugin
+    sleep: mujoco._enums.mjtSleepPolicy
     def add_body(self, default: MjsDefault = None, **kwargs) -> MjsBody:
         ...
     def add_camera(self, default: MjsDefault = None, **kwargs) -> MjsCamera:
@@ -1299,6 +1300,8 @@ class MjsCamera:
         ...
 class MjsCompiler:
     LRopt: mujoco._structs.MjLROpt
+    meshdir: str
+    texturedir: str
     @property
     def alignfree(self) -> int:
         ...
@@ -1576,6 +1579,12 @@ class MjsFlex:
     def nodebody(self, arg1: typing.Any) -> None:
         ...
     @property
+    def passive(self) -> int:
+        ...
+    @passive.setter
+    def passive(self, arg1: typing.SupportsInt) -> None:
+        ...
+    @property
     def poisson(self) -> float:
         ...
     @poisson.setter
@@ -1667,6 +1676,20 @@ class MjsFrame:
     childclass: str
     info: str
     name: str
+    def add_body(self, default: MjsDefault = None, **kwargs) -> MjsBody:
+        ...
+    def add_camera(self, default: MjsDefault = None, **kwargs) -> MjsCamera:
+        ...
+    def add_frame(self, default: MjsFrame = None, **kwargs) -> MjsFrame:
+        ...
+    def add_geom(self, default: MjsDefault = None, **kwargs) -> MjsGeom:
+        ...
+    def add_joint(self, default: MjsDefault = None, **kwargs) -> MjsJoint:
+        ...
+    def add_light(self, default: MjsDefault = None, **kwargs) -> MjsLight:
+        ...
+    def add_site(self, default: MjsDefault = None, **kwargs) -> MjsSite:
+        ...
     def attach_body(self, body: MjsBody, prefix: str | None = None, suffix: str | None = None) -> MjsBody:
         ...
     def set_frame(self, arg0: MjsFrame) -> None:
@@ -2265,6 +2288,7 @@ class MjsMesh:
     file: str
     inertia: mujoco._enums.mjtMeshInertia
     info: str
+    material: str
     name: str
     plugin: MjsPlugin
     def make_cone(self, nedge: typing.SupportsInt, radius: typing.SupportsFloat) -> None:
@@ -2328,6 +2352,12 @@ class MjsMesh:
         ...
     @userface.setter
     def userface(self, arg1: typing.Any) -> None:
+        ...
+    @property
+    def userfacenormal(self) -> MjIntVec:
+        ...
+    @userfacenormal.setter
+    def userfacenormal(self, arg1: typing.Any) -> None:
         ...
     @property
     def userfacetexcoord(self) -> MjIntVec:
@@ -2731,6 +2761,9 @@ class MjsTendon:
     def margin(self, arg1: typing.SupportsFloat) -> None:
         ...
     @property
+    def path(self) -> MjsTendonPath:
+        ...
+    @property
     def range(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]", "flags.writeable"]:
         ...
     @range.setter
@@ -2793,6 +2826,11 @@ class MjsTendon:
     @width.setter
     def width(self, arg1: typing.SupportsFloat) -> None:
         ...
+class MjsTendonPath:
+    def __getitem__(self, arg0: typing.SupportsInt) -> MjsWrap:
+        ...
+    def __len__(self) -> int:
+        ...
 class MjsText:
     data: str
     info: str
@@ -2806,6 +2844,7 @@ class MjsText:
 class MjsTexture:
     colorspace: mujoco._enums.mjtColorSpace
     content_type: str
+    data: bytes
     file: str
     info: str
     name: str
@@ -2821,12 +2860,6 @@ class MjsTexture:
         ...
     @cubefiles.setter
     def cubefiles(self, arg1: typing.Any) -> None:
-        ...
-    @property
-    def data(self) -> MjByteVec:
-        ...
-    @data.setter
-    def data(self, arg1: bytes) -> None:
         ...
     @property
     def gridlayout(self) -> MjCharVec:
@@ -2935,3 +2968,16 @@ class MjsTuple:
         ...
 class MjsWrap:
     info: str
+    type: mujoco._enums.mjtWrap
+    @property
+    def coef(self) -> typing.Any:
+        ...
+    @property
+    def divisor(self) -> typing.Any:
+        ...
+    @property
+    def sidesite(self) -> MjsSite:
+        ...
+    @property
+    def target(self) -> typing.Any:
+        ...

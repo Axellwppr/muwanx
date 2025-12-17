@@ -2,9 +2,9 @@ name: ruff
 
 on:
   push:
-    branches: [main]
+    branches: [reorg]
   pull_request:
-    branches: [main]
+    branches: [reorg]
 
 jobs:
   build:

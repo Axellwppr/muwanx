@@ -17,12 +17,12 @@ import argparse
 import json
 import os
 import sys
+import xml.etree.ElementTree as ET
 from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
 from typing import DefaultDict, Dict, Iterable, List, Optional, Sequence, Set
 from urllib.parse import unquote, urlparse
-import xml.etree.ElementTree as ET
 
 # Attributes that may reference external resources. They are treated uniformly so
 # that any new MJCF elements using these attributes are picked up automatically.
@@ -80,7 +80,9 @@ def unique_paths(paths: Iterable[Path]) -> List[Path]:
     return ordered
 
 
-def parse_compiler_directories(root: ET.Element, base_dir: Path) -> Dict[str, List[Path]]:
+def parse_compiler_directories(
+    root: ET.Element, base_dir: Path
+) -> Dict[str, List[Path]]:
     """Extract compiler directory hints and normalise them to absolute paths."""
 
     directories: DefaultDict[str, List[Path]] = defaultdict(list)
@@ -120,7 +122,9 @@ def normalise_to_path(raw_value: str, base_dir: Path) -> Optional[Path]:
     return (base_dir / candidate).resolve(strict=False)
 
 
-def merge_directory_hints(parent_hints: Dict[str, List[Path]], local_hints: Dict[str, List[Path]]) -> Dict[str, List[Path]]:
+def merge_directory_hints(
+    parent_hints: Dict[str, List[Path]], local_hints: Dict[str, List[Path]]
+) -> Dict[str, List[Path]]:
     """Merge parent hints with local hints, appending local to parent for each key."""
     merged: Dict[str, List[Path]] = {k: v.copy() for k, v in parent_hints.items()}
     for key, paths in local_hints.items():
@@ -295,20 +299,14 @@ def collect_assets(root_file: Path) -> List[str]:
     walk(root_file)
     return sorted(collected)
 
+
 def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Collect MJCF assets for all models listed in config.json"
     )
+    parser.add_argument("config", type=Path, help="Path to config.json")
     parser.add_argument(
-        "config",
-        type=Path,
-        help="Path to config.json"
-    )
-    parser.add_argument(
-        "--indent",
-        type=int,
-        default=2,
-        help="JSON indent level (default: 2)"
+        "--indent", type=int, default=2, help="JSON indent level (default: 2)"
     )
     return parser.parse_args(argv)
 
@@ -335,7 +333,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         model_xml = task.get("model_xml")
         name = task.get("name", "Unnamed")
         if not model_xml:
-            print(f"[warn] Skipping task '{name}' (no model_xml found)", file=sys.stderr)
+            print(
+                f"[warn] Skipping task '{name}' (no model_xml found)", file=sys.stderr
+            )
             continue
 
         # Resolve model_xml path relative to the config directory
@@ -348,7 +348,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
         output_path = xml_path.parent / "index.json"
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        output_path.write_text(json.dumps(dependencies, indent=args.indent), encoding="utf-8")
+        output_path.write_text(
+            json.dumps(dependencies, indent=args.indent), encoding="utf-8"
+        )
 
         print(f"[info] Wrote {output_path}")
 

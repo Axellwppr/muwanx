@@ -231,4 +231,3 @@ export function updateHeadlightFromCamera(
     dl.target.updateMatrixWorld?.();
   }
 }
-

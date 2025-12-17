@@ -21,4 +21,3 @@ export interface StatusState {
   extra_error_message: string;
   urlParamErrorMessage: string;
 }
-

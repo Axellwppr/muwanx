@@ -102,4 +102,3 @@ export function useConfig(configSource: string | AppConfig) {
     loadConfig,
   };
 }
-

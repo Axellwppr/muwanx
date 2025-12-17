@@ -18,15 +18,15 @@
 
 ---
 
-**Muwanx** is a browser-based mujoco playground built on top of [**MU**joco **WA**sm](https://github.com/google-deepmind/mujoco/tree/main/wasm), [on**NX** runtime](https://github.com/microsoft/onnxruntime), and [three.js](https://github.com/mrdoob/three.js/). It enables MuJoCo simulations with real-time trained policy control, running entirely in the browser - no server for simulation required.  
+**Muwanx** is a browser-based mujoco playground built on top of [**MU**joco **WA**sm](https://github.com/google-deepmind/mujoco/tree/main/wasm), [on**NX** runtime](https://github.com/microsoft/onnxruntime), and [three.js](https://github.com/mrdoob/three.js/). It enables MuJoCo simulations with real-time trained policy control, running entirely in the browser - no server for simulation required.
 Perfect for sharing interactive demos as static sites (which can be hosted on GitHub Pages), rapidly prototyping RL policies, or building customizable environments for experimentation and visualization.
 
 
 ### 🚀 [Visit the Live Demo](https://ttktjmt.github.io/muwanx/)
 
-**╰▶ [Live Demo: MyoSuite](https://ttktjmt.github.io/muwanx/#/myosuite)** &nbsp;&nbsp;© [MyoSuite](https://github.com/MyoHub/myosuite)  
-**╰▶ [Live Demo: MuJoCo Menagerie](https://ttktjmt.github.io/muwanx/#/menagerie)** &nbsp;&nbsp;© [Google DeepMind](https://github.com/google-deepmind/mujoco_menagerie)  
-**╰▶ [Live Demo: MuJoCo Playground](https://ttktjmt.github.io/muwanx/#/playground)** &nbsp;&nbsp;© [Google DeepMind](https://github.com/google-deepmind/mujoco_playground)  
+**╰▶ [Live Demo: MyoSuite](https://ttktjmt.github.io/muwanx/#/myosuite)** &nbsp;&nbsp;© [MyoSuite](https://github.com/MyoHub/myosuite)
+**╰▶ [Live Demo: MuJoCo Menagerie](https://ttktjmt.github.io/muwanx/#/menagerie)** &nbsp;&nbsp;© [Google DeepMind](https://github.com/google-deepmind/mujoco_menagerie)
+**╰▶ [Live Demo: MuJoCo Playground](https://ttktjmt.github.io/muwanx/#/playground)** &nbsp;&nbsp;© [Google DeepMind](https://github.com/google-deepmind/mujoco_playground)
 
 ## Features
 - **Real-time**: Run MuJoCo simulations with real-time policy control.
@@ -47,7 +47,7 @@ Muwanx incorporates mujoco models from the external sources in its demo. See the
 
 ## Acknowledgments
 
-This project was greatly inspired by the [Facet project demo](https://facet.pages.dev/) from the research group at Tsinghua University.  
+This project was greatly inspired by the [Facet project demo](https://facet.pages.dev/) from the research group at Tsinghua University.
 It is also built upon the excellent work of [zalo/mujoco_wasm](https://github.com/zalo/mujoco_wasm), one of the earliest efforts to run MuJoCo simulations in a browser.
 
 ## License

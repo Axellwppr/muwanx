@@ -393,5 +393,3 @@ export class SimpleVelocityCommand {
     return flattened;
   }
 }
-
-

@@ -16,7 +16,7 @@
     { "id": "12", "name": "DMC Reacher",                "model_xml": "./assets/scene/mujoco_playground/mujoco_playground/_src/dm_control_suite/xmls/reacher.xml",     "asset_meta": null, "default_policy": null, "policies": [] },
     { "id": "13", "name": "DMC Swimmer",                "model_xml": "./assets/scene/mujoco_playground/mujoco_playground/_src/dm_control_suite/xmls/swimmer.xml",     "asset_meta": null, "default_policy": null, "policies": [] },
     { "id": "14", "name": "DMC Walker",                 "model_xml": "./assets/scene/mujoco_playground/mujoco_playground/_src/dm_control_suite/xmls/walker.xml",      "asset_meta": null, "default_policy": null, "policies": [] },
-    
+
     { "id": "15", "name": "LEAP Hand Cube",             "model_xml": "./assets/scene/mujoco_playground/mujoco_playground/_src/manipulation/leap_hand/xmls/scene_mjx_cube.xml",                            "asset_meta": null, "default_policy": null, "policies": [] },
     { "id": "16", "name": "Panda Single Cube",          "model_xml": "./assets/scene/mujoco_playground/mujoco_playground/_src/manipulation/franka_emika_panda/xmls/mjx_single_cube.xml",                  "asset_meta": null, "default_policy": null, "policies": [] },
     { "id": "17", "name": "Panda Single Cube (Camera)", "model_xml": "./assets/scene/mujoco_playground/mujoco_playground/_src/manipulation/franka_emika_panda/xmls/mjx_single_cube_camera.xml",           "asset_meta": null, "default_policy": null, "policies": [] },
@@ -45,4 +45,3 @@
     { "id": "39", "name": "Berkeley Humanoid Rough",    "model_xml": "./assets/scene/mujoco_playground/mujoco_playground/_src/locomotion/berkeley_humanoid/xmls/scene_mjx_feetonly_rough_terrain.xml", "asset_meta": null, "default_policy": null, "policies": [] }
   ]
 }
-

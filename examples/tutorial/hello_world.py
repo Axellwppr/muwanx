@@ -5,6 +5,7 @@ using the MuWanX viewer. It sets up a scene with a plane and a box above it, and
 """
 
 import mujoco
+
 import muwanx as mwx
 
 

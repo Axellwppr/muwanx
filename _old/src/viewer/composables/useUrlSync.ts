@@ -104,4 +104,3 @@ export function useUrlSync(options: {
 
   return { sync, routeItems, goToRoute };
 }
-

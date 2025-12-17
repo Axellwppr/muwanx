@@ -33,4 +33,3 @@ export function useResponsive() {
 
   return { isMobile, isSmallScreen, isPanelCollapsed, togglePanel };
 }
-

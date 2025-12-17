@@ -107,4 +107,3 @@ export function createShortcuts(options: ShortcutsOptions = {}) {
     },
   };
 }
-

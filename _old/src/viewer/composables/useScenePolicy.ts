@@ -60,4 +60,3 @@ export function useScenePolicy(options: {
 
   return { selectedTask, selectedPolicy, selectTask, selectPolicy, navigateScene, navigatePolicy };
 }
-

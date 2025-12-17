@@ -11,7 +11,7 @@
       "policies": []
     },
     {
-      "id": "2", 
+      "id": "2",
       "name": "Agility Cassie",
       "model_xml": "./assets/scene/mujoco_menagerie/agility_cassie/scene.xml",
       "asset_meta": null,
@@ -21,7 +21,7 @@
     {
       "id": "3",
       "name": "ALOHA",
-      "model_xml": "./assets/scene/mujoco_menagerie/aloha/scene.xml", 
+      "model_xml": "./assets/scene/mujoco_menagerie/aloha/scene.xml",
       "asset_meta": null,
       "default_policy": null,
       "policies": []
@@ -36,7 +36,7 @@
     },
     {
       "id": "5",
-      "name": "ANYmal C", 
+      "name": "ANYmal C",
       "model_xml": "./assets/scene/mujoco_menagerie/anybotics_anymal_c/scene.xml",
       "asset_meta": null,
       "default_policy": null,
@@ -269,7 +269,7 @@
     {
       "id": "34",
       "name": "PAL TIAGo Dual (Motor Control)",
-      "model_xml": "./assets/scene/mujoco_menagerie/pal_tiago_dual/scene_motor.xml", 
+      "model_xml": "./assets/scene/mujoco_menagerie/pal_tiago_dual/scene_motor.xml",
       "asset_meta": null,
       "default_policy": null,
       "policies": []
@@ -277,7 +277,7 @@
     {
       "id": "35",
       "name": "PAL TIAGo Dual (Position Control)",
-      "model_xml": "./assets/scene/mujoco_menagerie/pal_tiago_dual/scene_position.xml", 
+      "model_xml": "./assets/scene/mujoco_menagerie/pal_tiago_dual/scene_position.xml",
       "asset_meta": null,
       "default_policy": null,
       "policies": []
@@ -285,7 +285,7 @@
     {
       "id": "36",
       "name": "PAL TIAGo Dual (Velocity Control)",
-      "model_xml": "./assets/scene/mujoco_menagerie/pal_tiago_dual/scene_velocity.xml", 
+      "model_xml": "./assets/scene/mujoco_menagerie/pal_tiago_dual/scene_velocity.xml",
       "asset_meta": null,
       "default_policy": null,
       "policies": []

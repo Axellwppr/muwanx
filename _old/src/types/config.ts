@@ -28,4 +28,3 @@ export interface AppConfig {
   project_link?: string;
   tasks: TaskConfigItem[];
 }
-
