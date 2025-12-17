@@ -10,7 +10,7 @@ import muwanx as mwx
 
 def main():
     builder = mwx.Builder()
-    hello_world_project = builder.add_project(name="Hello World Project")
+    hello_world_project = builder.add_project(name="Hello World")
     model = mujoco.MjModel.from_xml_string("""
     <mujoco>
       <worldbody>
@@ -23,8 +23,22 @@ def main():
       </worldbody>
     </mujoco>
     """)
-    hello_world_project.add_scene(model)
-    hello_world_project.launch()
+    hello_world_project.add_scene(
+        model=model,
+        name="Box over Plane",
+    )
+
+    # Build the application
+    app = builder.build()
+
+    # Save to disk
+    app.save("hello_world")
+
+    # Or launch in browser (not yet implemented)
+    # app.launch()
+
+    print("✓ Builder example completed successfully!")
+    print(f"  - Projects: {len(builder.get_projects())}")
 
 
 if __name__ == "__main__":
