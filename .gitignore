@@ -1,5 +1,6 @@
 # Dependencies
 /node_modules
+.nodeenv
 
 # IDE - VSCode
 .vscode
@@ -42,7 +43,7 @@ Thumbs.db
 .temp
 
 # Artifacts
-/dist
+dist/
 
 # Python virtual environments
 venv

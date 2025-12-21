@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build]
-exclude = ["src/muwanx/client/.nodeenv", "src/muwanx/client/node_modules", "**/__pycache__/**"]
+exclude = ["src/muwanx/template/.nodeenv", "src/muwanx/template/node_modules", "**/__pycache__/**"]
 # Client build is in the gitignore, but we still want it in the distribution.
 ignore-vcs = true
 
@@ -56,6 +56,7 @@ dev = [
     "pre-commit>=3.3.2",
     "ruff>=0.14.9",
     "pytest>=9.0.2",
+    "nodeenv>=1.9.0",
 ]
 examples = [
     "mjlab @ git+https://github.com/mujocolab/mjlab.git@5ea83b3ea0e8586882d2b516f72ea6a887149913",
@@ -71,7 +72,7 @@ examples = [
 
 [tool.pyright]
 extraPaths = []
-exclude = ["./docs/**/*", "./examples/assets/**/*", "./src/muwanx/client/.nodeenv", "./build"]
+exclude = ["./docs/**/*", "./examples/assets/**/*", "./src/muwanx/template/.nodeenv", "./build"]
 
 [tool.ruff]
 lint.select = [
@@ -119,3 +120,6 @@ explicit = true
 [tool.uv.sources]
 warp-lang = { index = "nvidia", marker = "sys_platform != 'darwin'" }
 mujoco = { index = "mujoco" }
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

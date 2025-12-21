@@ -1412,6 +1412,7 @@ dependencies = [
 
 [package.optional-dependencies]
 dev = [
+    { name = "nodeenv" },
     { name = "pre-commit" },
     { name = "pyright" },
     { name = "pytest" },
@@ -1428,6 +1429,7 @@ requires-dist = [
     { name = "mjlab", marker = "extra == 'examples'", git = "https://github.com/mujocolab/mjlab.git?rev=5ea83b3ea0e8586882d2b516f72ea6a887149913" },
     { name = "mujoco", specifier = ">=3.2.3", index = "https://py.mujoco.org/" },
     { name = "mujoco-warp", marker = "extra == 'examples'" },
+    { name = "nodeenv", marker = "extra == 'dev'", specifier = ">=1.9.0" },
     { name = "onnx", specifier = ">=1.20.0" },
     { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=3.3.2" },
     { name = "pyright", marker = "extra == 'dev'", specifier = ">=1.1.407" },

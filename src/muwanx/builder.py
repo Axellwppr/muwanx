@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import inspect
 import json
+import shutil
 import warnings
 from pathlib import Path
 from typing import Any
@@ -15,6 +16,7 @@ from typing import Any
 import mujoco
 import onnx
 
+from ._build_client import ClientBuilder
 from .app import MuwanxApp
 from .project import ProjectConfig, ProjectHandle
 
@@ -181,10 +183,22 @@ class Builder:
         output_path.mkdir(parents=True, exist_ok=True)
 
         # Copy template directory
-        import shutil
-
         template_dir = Path(__file__).parent / "template"
         if template_dir.exists():
+            # Build TypeScript/JavaScript client first
+            package_json = template_dir / "package.json"
+            if package_json.exists():
+                print("Building TypeScript/JavaScript client...")
+                try:
+                    builder = ClientBuilder(template_dir)
+                    builder.build()
+                except Exception as e:
+                    warnings.warn(
+                        f"Client build failed: {e}. Continuing with template files.",
+                        category=RuntimeWarning,
+                        stacklevel=2,
+                    )
+
             # Copy all files from template to output_path
             # We use shutil.copytree with dirs_exist_ok=True (Python 3.8+)
             shutil.copytree(template_dir, output_path, dirs_exist_ok=True)

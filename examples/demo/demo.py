@@ -4,13 +4,26 @@ This is a demo application showcasing the usage of muwanx.
 The demo app is hosted on GitHub Pages: https://muwanx.github.io/muwanx/
 """
 
+import os
+from pathlib import Path
+
 import mujoco
 import onnx
 
 import muwanx as mwx
 
 
-def main():
+def setup_builder() -> mwx.Builder:
+    """Set up and return the builder with all demo projects configured.
+
+    This function creates the builder and adds all projects, scenes, and policies
+    but does not build or launch the application. Useful for testing.
+
+    Returns:
+        Configured Builder instance ready to be built.
+    """
+    # Ensure asset-relative paths resolve regardless of current working directory.
+    os.chdir(Path(__file__).resolve().parent)
     builder = mwx.Builder()
 
     # =======================
@@ -22,47 +35,47 @@ def main():
 
     # 1.A. Unitree Go2
     go2_scene = demo_project.add_scene(
-        model=mujoco.MjModel.from_xml_path("assets/scene/demo/unitree_go2/scene.xml"),
+        model=mujoco.MjModel.from_xml_path("assets/scene/muwanx/unitree_go2/scene.xml"),
         name="Go2",
     )
     go2_scene.add_policy(
-        policy=onnx.load("assets/policy/demo/unitree_go2/facet.onnx"),
+        policy=onnx.load("assets/policy/unitree_go2/facet.onnx"),
         name="Facet",
     )
     go2_scene.add_policy(
-        policy=onnx.load("assets/policy/demo/unitree_go2/vanilla.onnx"),
+        policy=onnx.load("assets/policy/unitree_go2/vanilla.onnx"),
         name="Vanilla",
     )
     go2_scene.add_policy(
-        policy=onnx.load("assets/policy/demo/unitree_go2/robust.onnx"),
+        policy=onnx.load("assets/policy/unitree_go2/robust.onnx"),
         name="Robust",
     )
 
     # 1.B. Unitree Go1
     go1_scene = demo_project.add_scene(
-        model=mujoco.MjModel.from_xml_path("assets/scene/demo/unitree_go1/scene.xml"),
+        model=mujoco.MjModel.from_xml_path("assets/scene/muwanx/unitree_go1/go1.xml"),
         name="Go1",
     )
     go1_scene.add_policy(
-        policy=onnx.load("assets/policy/demo/unitree_go1/himloco.onnx"),
+        policy=onnx.load("assets/policy/unitree_go1/himloco.onnx"),
         name="HiMLoco",
     )
     go1_scene.add_policy(
-        policy=onnx.load("assets/policy/demo/unitree_go1/decap.onnx"),
+        policy=onnx.load("assets/policy/unitree_go1/decap.onnx"),
         name="Decap",
     )
 
     # 1.C. Unitree G1
     g1_scene = demo_project.add_scene(
-        model=mujoco.MjModel.from_xml_path("assets/scene/demo/unitree_g1/scene.xml"),
+        model=mujoco.MjModel.from_xml_path("assets/scene/muwanx/unitree_g1/scene.xml"),
         name="G1",
     )
     g1_scene.add_policy(
-        policy=onnx.load("assets/policy/demo/unitree_g1/locomotion.onnx"),
+        policy=onnx.load("assets/policy/unitree_g1/locomotion.onnx"),
         name="Locomotion",
     )
     g1_scene.add_policy(
-        policy=onnx.load("assets/policy/demo/unitree_g1/balance.onnx"),
+        policy=onnx.load("assets/policy/unitree_g1/balance.onnx"),
         name="Balance",
     )
 
@@ -560,18 +573,18 @@ def main():
         ),
         name="LEAP Hand Cube",
     )
-    playground_project.add_scene(
-        model=mujoco.MjModel.from_xml_path(
-            "assets/scene/mujoco_playground/mujoco_playground/_src/manipulation/franka_emika_panda/xmls/mjx_single_cube.xml"
-        ),
-        name="Panda Single Cube",
-    )
-    playground_project.add_scene(
-        model=mujoco.MjModel.from_xml_path(
-            "assets/scene/mujoco_playground/mujoco_playground/_src/manipulation/franka_emika_panda/xmls/mjx_single_cube_camera.xml"
-        ),
-        name="Panda Single Cube (Camera)",
-    )
+    # playground_project.add_scene(
+    #     model=mujoco.MjModel.from_xml_path(
+    #         "assets/scene/mujoco_playground/mujoco_playground/_src/manipulation/franka_emika_panda/xmls/mjx_single_cube.xml"
+    #     ),
+    #     name="Panda Single Cube",
+    # )
+    # playground_project.add_scene(
+    #     model=mujoco.MjModel.from_xml_path(
+    #         "assets/scene/mujoco_playground/mujoco_playground/_src/manipulation/franka_emika_panda/xmls/mjx_single_cube_camera.xml"
+    #     ),
+    #     name="Panda Single Cube (Camera)",
+    # )
     playground_project.add_scene(
         model=mujoco.MjModel.from_xml_path(
             "assets/scene/mujoco_playground/mujoco_playground/_src/manipulation/franka_emika_panda/xmls/mjx_cabinet.xml"
@@ -789,6 +802,12 @@ def main():
         name="mc25_Soccer",
     )
 
+    return builder
+
+
+def main():
+    """Main entry point for the demo application."""
+    builder = setup_builder()
     # Build and launch the application
     app = builder.build()
     app.launch()
