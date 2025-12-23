@@ -13,23 +13,6 @@
     "lint": "eslint src/",
     "typecheck": "tsc --noEmit"
   },
-  "eslintConfig": {
-    "extends": [
-      "react-app"
-    ]
-  },
-  "browserslist": {
-    "production": [
-      "last 2 chrome versions",
-      "last 2 firefox versions",
-      "last 2 safari versions"
-    ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
-  },
   "dependencies": {
     "mujoco-js": "^0.0.7",
     "onnxruntime-web": "^1.21.1",
@@ -37,6 +20,10 @@
   },
   "devDependencies": {
     "@types/three": "^0.181.0",
+    "@typescript-eslint/eslint-plugin": "^8.50.1",
+    "@typescript-eslint/parser": "^8.50.1",
+    "globals": "^15.11.0",
+    "eslint": "^9.39.2",
     "typescript": "^5.9.3",
     "vite": "^5.0.0"
   }

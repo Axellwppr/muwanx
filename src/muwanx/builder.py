@@ -207,6 +207,39 @@ class Builder:
                 dirs_exist_ok=True,
                 ignore=shutil.ignore_patterns(".nodeenv", "__pycache__", "*.pyc"),
             )
+
+            # Move built files from nested dist/ to output_path root
+            built_dist = output_path / "dist"
+            if built_dist.exists() and built_dist.is_dir():
+                # Move all files from dist/ to output_path
+                for item in built_dist.iterdir():
+                    dest = output_path / item.name
+                    if dest.exists():
+                        if dest.is_dir():
+                            shutil.rmtree(dest)
+                        else:
+                            dest.unlink()
+                    shutil.move(str(item), str(output_path))
+                # Remove the now-empty dist directory
+                built_dist.rmdir()
+
+                # Clean up development files that shouldn't be in production
+                dev_files = [
+                    "src",
+                    "public",
+                    "node_modules",
+                    ".nodeenv",
+                    "package.json",
+                    "package-lock.json",
+                    "tsconfig.json",
+                ]
+                for dev_file in dev_files:
+                    dev_path = output_path / dev_file
+                    if dev_path.exists():
+                        if dev_path.is_dir():
+                            shutil.rmtree(dev_path)
+                        else:
+                            dev_path.unlink()
         else:
             warnings.warn(
                 f"Template directory not found at {template_dir}.",
