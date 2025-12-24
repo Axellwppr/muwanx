@@ -46,7 +46,7 @@ jobs:
     - name: Organize files for deployment
       run: |
         mkdir -p tree
-        mv -r examples/demo/dist tree/
+        mv examples/demo/dist tree/
 
     - name: Upload artifact
       uses: actions/upload-pages-artifact@v3
