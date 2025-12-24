@@ -64,16 +64,17 @@ def test_build_app():
 
 
 def test_build_empty_app_warning():
-    """Test that building an empty app raises a warning."""
+    """Test that building an empty app raises a ValueError."""
     import tempfile
 
     builder = mwx.Builder()
 
     with tempfile.TemporaryDirectory() as tmpdir:
-        with pytest.warns(UserWarning, match="Building an empty application"):
-            app = builder.build(tmpdir)
-
-    assert app is not None
+        with pytest.raises(
+            ValueError,
+            match="Cannot build an empty application",
+        ):
+            builder.build(tmpdir)
 
 
 def test_project_metadata():
