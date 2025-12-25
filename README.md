@@ -20,12 +20,6 @@
   <a href="https://ttktjmt.github.io/muwanx/"><img src="assets/demo.gif" width="70%"/></a>
 </p>
 
-<div align="center">
-  <video src="assets/demo.webm" width="70%" autoplay loop muted playsinline>
-  </video>
-</div>
-
-
 <p align="center">
   <em>Check out the demo ― <a href="https://ttktjmt.github.io/muwanx/">ttktjmt.github.io/muwanx</a></em>
 </p>
