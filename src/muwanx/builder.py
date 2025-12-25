@@ -177,7 +177,10 @@ class Builder:
             ],
         }
 
-        config_file = output_path / "config.json"
+        # Save config.json in assets directory
+        assets_dir = output_path / "assets"
+        assets_dir.mkdir(exist_ok=True)
+        config_file = assets_dir / "config.json"
         with open(config_file, "w") as f:
             json.dump(config, f, indent=2)
 

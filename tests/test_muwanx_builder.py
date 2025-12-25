@@ -156,7 +156,7 @@ def test_app_save_includes_project_id():
 
     with tempfile.TemporaryDirectory() as tmpdir:
         builder.build(tmpdir)
-        config_file = Path(tmpdir) / "config.json"
+        config_file = Path(tmpdir) / "assets" / "config.json"
 
         with open(config_file) as f:
             config = json.load(f)

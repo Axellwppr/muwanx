@@ -29,8 +29,9 @@ function App() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Load config.json
-    fetch('/config.json')
+    // Load config.json from assets directory with proper base path
+    const configPath = `${import.meta.env.BASE_URL}assets/config.json`.replace(/\/+/g, '/');
+    fetch(configPath)
       .then(response => {
         if (!response.ok) {
           throw new Error(`Failed to load config.json: ${response.status}`);
