@@ -54,9 +54,15 @@ class Builder:
         >>> app.launch()
     """
 
-    def __init__(self) -> None:
-        """Initialize a new Builder instance."""
+    def __init__(self, base_path: str = "/") -> None:
+        """Initialize a new Builder instance.
+
+        Args:
+            base_path: Base path for the application (e.g., '/muwanx/reorg/').
+                      This is used for deployment to subdirectories.
+        """
         self._projects: list[ProjectConfig] = []
+        self._base_path = base_path
 
     def add_project(
         self,
@@ -194,7 +200,7 @@ class Builder:
                 print("Building TypeScript/JavaScript client...")
                 try:
                     builder = ClientBuilder(template_dir)
-                    builder.build()
+                    builder.build(base_path=self._base_path)
                 except Exception as e:
                     warnings.warn(
                         f"Client build failed: {e}. Continuing with template files.",

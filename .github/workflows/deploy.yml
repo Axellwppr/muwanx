@@ -33,16 +33,11 @@ jobs:
         python -m pip install -e .
 
     - name: Build demo application
-      run: MUWANX_NO_LAUNCH=1 python examples/demo/demo.py
-
-    - name: Organize files
-      run: |
-        mkdir -p deploy
-        mv examples/demo/dist deploy/
+      run: MUWANX_BASE_PATH="/muwanx/reorg/" MUWANX_NO_LAUNCH=1 python examples/demo/demo.py
 
     - name: Deploy to gh-pages (/reorg)
       uses: peaceiris/actions-gh-pages@v4
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./deploy
+        publish_dir: ./examples/demo/dist
         destination_dir: reorg

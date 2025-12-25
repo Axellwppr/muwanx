@@ -107,7 +107,9 @@ class ClientBuilder:
             print("npm ci failed, falling back to npm install...")
             subprocess.check_call([str(npm_bin), "install"], cwd=self.project_dir)
 
-    def run_build_script(self, script_name: str = "build") -> None:
+    def run_build_script(
+        self, script_name: str = "build", env: dict[str, str] | None = None
+    ) -> None:
         npm_bin = self._get_npm_bin()
         package_json = self.project_dir / "package.json"
         with open(package_json) as f:
@@ -118,13 +120,21 @@ class ClientBuilder:
                 f"Available scripts: {list(package_data.get('scripts', {}).keys())}"
             )
         print(f"Running npm script: {script_name}")
-        subprocess.check_call([str(npm_bin), "run", script_name], cwd=self.project_dir)
+        build_env = os.environ.copy()
+        if env:
+            build_env.update(env)
+        subprocess.check_call(
+            [str(npm_bin), "run", script_name],
+            cwd=self.project_dir,
+            env=build_env,
+        )
 
-    def build(self, clean: bool = False) -> None:
+    def build(self, clean: bool = False, base_path: str = "/") -> None:
         try:
             self.create_env(clean=clean)
             self.install_dependencies()
-            self.run_build_script("build")
+            env = {"VITE_BASE_PATH": base_path}
+            self.run_build_script("build", env=env)
             print("✓ Client build completed successfully")
         except subprocess.CalledProcessError as e:
             raise RuntimeError(f"Build failed with exit code {e.returncode}") from e
@@ -145,6 +155,8 @@ def ensure_node_env(
     return builder.nodeenv_dir
 
 
-def build_client(project_dir: Path, clean: bool = False, script: str = "build") -> None:
+def build_client(
+    project_dir: Path, clean: bool = False, script: str = "build", base_path: str = "/"
+) -> None:
     builder = ClientBuilder(project_dir)
-    builder.build(clean=clean)
+    builder.build(clean=clean, base_path=base_path)

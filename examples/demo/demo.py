@@ -24,7 +24,8 @@ def setup_builder() -> mwx.Builder:
     """
     # Ensure asset-relative paths resolve regardless of current working directory.
     os.chdir(Path(__file__).resolve().parent)
-    builder = mwx.Builder()
+    base_path = os.getenv("MUWANX_BASE_PATH", "/")
+    builder = mwx.Builder(base_path=base_path)
 
     # =======================
     # 1. Muwanx Demo Project
@@ -806,7 +807,12 @@ def setup_builder() -> mwx.Builder:
 
 
 def main():
-    """Main entry point for the demo application."""
+    """Main entry point for the demo application.
+
+    Environment variables:
+        MUWANX_BASE_PATH: Base path for deployment (default: '/')
+        MUWANX_NO_LAUNCH: Set to '1' to skip launching the browser
+    """
     builder = setup_builder()
     # Build and launch the application
     app = builder.build()
