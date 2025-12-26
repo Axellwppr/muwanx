@@ -29,24 +29,30 @@ interface AppConfig {
  * Returns the first path segment for other projects
  */
 function getProjectIdFromLocation(): string | null {
-  const path = window.location.pathname;
-  // Remove leading slash and trailing slashes
-  const cleanPath = path.replace(/^\/|\/$/g, '');
+  const base = (import.meta.env.BASE_URL || '/').replace(/\/+$/, '/');
+  const pathname = window.location.pathname;
 
-  // If no path or path is empty, it's the main project
-  if (!cleanPath) {
-    return null;
+  // strip leading/trailing slashes
+  let pathClean = pathname.replace(/^\/+|\/+$/g, '');
+  const baseClean = base.replace(/^\/+|\/+$/g, '');
+
+  // Remove base path prefix if present
+  if (baseClean) {
+    if (pathClean === baseClean) {
+      pathClean = '';
+    } else if (pathClean.startsWith(baseClean + '/')) {
+      pathClean = pathClean.slice(baseClean.length + 1);
+    }
   }
 
-  // Extract first path segment (project ID)
-  const segments = cleanPath.split('/');
-  const projectId = segments[0];
+  if (!pathClean) {
+    return null; // main project
+  }
 
-  // Ignore if it looks like a file or reserved path
+  const projectId = pathClean.split('/')[0];
   if (projectId.includes('.') || projectId === 'assets') {
     return null;
   }
-
   return projectId;
 }
 
@@ -129,13 +135,16 @@ function App() {
             <div style={{marginTop: '1rem'}}>
               <p style={{marginBottom: '0.5rem'}}>Available projects:</p>
               <ul style={{margin: 0, paddingLeft: '1.5rem'}}>
-                {allProjects.map(p => (
-                  <li key={p.id || 'main'}>
-                    <a href={p.id ? `/${p.id}/` : '/'} style={{color: '#0066cc'}}>
-                      {p.name} {p.id ? `(/${p.id}/)` : '(/)'}
-                    </a>
-                  </li>
-                ))}
+                {allProjects.map(p => {
+                  const href = `${import.meta.env.BASE_URL}${p.id ? `${p.id}/` : ''}`.replace(/\/+/g, '/');
+                  return (
+                    <li key={p.id || 'main'}>
+                      <a href={href} style={{color: '#0066cc'}}>
+                        {p.name} {p.id ? `(${href})` : `(${import.meta.env.BASE_URL})`}
+                      </a>
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           )}
@@ -159,17 +168,19 @@ function App() {
           <div style={styles.navItem}>
             <span style={styles.navLabel}>Other Projects:</span>
             <div style={{display: 'flex', gap: '0.5rem', flexWrap: 'wrap'}}>
-              {allProjects.map(p => (
-                p.id !== currentProject.id && (
+              {allProjects.map(p => {
+                if (p.id === currentProject.id) return null;
+                const href = `${import.meta.env.BASE_URL}${p.id ? `${p.id}/` : ''}`.replace(/\/+/g, '/');
+                return (
                   <a
                     key={p.id || 'main'}
-                    href={p.id ? `/${p.id}/` : '/'}
+                    href={href}
                     style={styles.projectLink}
                   >
                     {p.name}
                   </a>
-                )
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
@@ -179,7 +190,7 @@ function App() {
         <h2 style={styles.subtitle}>Scenes & Policies</h2>
         <p style={{color: '#666', fontSize: '0.9rem', marginBottom: '1rem'}}>
           Project Asset Path: <code style={{backgroundColor: '#f5f5f5', padding: '0.2rem 0.4rem'}}>
-            {projectId ? `${projectId}/assets/` : 'main/assets/'}
+            {`${import.meta.env.BASE_URL}${projectId ? `${projectId}/assets/` : 'main/assets/'}`.replace(/\/+/g, '/')}
           </code>
         </p>
         <ul style={styles.tree}>
