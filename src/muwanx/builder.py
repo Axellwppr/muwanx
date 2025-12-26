@@ -284,8 +284,6 @@ class Builder:
         # Save root configuration (project metadata and structure)
         self._save_json(output_path)
 
-        # 404.html is not required when each project has its own index.html
-
         # Save MuJoCo models and ONNX policies per project
         for project in self._projects:
             # Use 'main' for projects without ID, otherwise use the project ID
@@ -304,6 +302,12 @@ class Builder:
             root_index = output_path / "index.html"
             if root_index.exists():
                 shutil.copy(str(root_index), str(project_dir / "index.html"))
+
+            # Copy static root assets
+            for static_name in ["manifest.json", "favicon.svg", "logo.svg"]:
+                src_static = output_path / static_name
+                if src_static.exists():
+                    shutil.copy(str(src_static), str(project_dir / static_name))
 
             # Save scenes and policies
             for scene in project.scenes:

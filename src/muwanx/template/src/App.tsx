@@ -58,30 +58,10 @@ function App() {
 
   const projectId = useMemo(() => getProjectIdFromLocation(), []);
 
-  /**
-   * Compute the base URL for assets.
-   * Since each project directory has its own index.html,
-   * we need to navigate up one level to reach the shared assets.
-   * - From root (/) or /?query: BASE_URL/assets/
-   * - From /project-id/: ../assets/ (or ../../assets/ relative to current location)
-   */
-  const assetBaseUrl = useMemo(() => {
-    if (projectId === null) {
-      // Main project: use BASE_URL directly
-      return `${import.meta.env.BASE_URL}assets/`.replace(/\/+/g, '/');
-    } else {
-      // Project-specific: go up one level from /project-id/
-      // The index.html is at /project-id/index.html
-      // Assets are at /assets/
-      // So we use ../assets/ relative path
-      const base = import.meta.env.BASE_URL;
-      return `${base}../assets/`.replace(/\/+/g, '/');
-    }
-  }, [projectId]);
-
   useEffect(() => {
     // Load root config.json from assets directory
-    const configPath = `${assetBaseUrl}config.json`;
+    // All project index.html files reference the same root assets using absolute path
+    const configPath = `${import.meta.env.BASE_URL}assets/config.json`.replace(/\/+/g, '/');
     fetch(configPath)
       .then(response => {
         if (!response.ok) {
@@ -110,7 +90,7 @@ function App() {
         setError(err.message);
         setLoading(false);
       });
-  }, [projectId, assetBaseUrl]);
+  }, [projectId]);
 
 
   if (loading) {
@@ -198,7 +178,9 @@ function App() {
       <div style={styles.section}>
         <h2 style={styles.subtitle}>Scenes & Policies</h2>
         <p style={{color: '#666', fontSize: '0.9rem', marginBottom: '1rem'}}>
-          Asset Base Path: <code style={{backgroundColor: '#f5f5f5', padding: '0.2rem 0.4rem'}}>{assetBaseUrl}</code>
+          Project Asset Path: <code style={{backgroundColor: '#f5f5f5', padding: '0.2rem 0.4rem'}}>
+            {projectId ? `${projectId}/assets/` : 'main/assets/'}
+          </code>
         </p>
         <ul style={styles.tree}>
           {currentProject.scenes.map(scene => {
