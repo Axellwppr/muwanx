@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import MujocoViewer from './components/MujocoViewer';
+import MuwanxViewer from './components/MuwanxViewer';
 
 interface PolicyConfig {
   name: string;
@@ -246,7 +246,7 @@ function App() {
 
   return (
     <div className="app">
-      <MujocoViewer
+      <MuwanxViewer
         scenePath={scenePath}
         baseUrl={import.meta.env.BASE_URL || '/'}
         onStatusChange={setViewerStatus}

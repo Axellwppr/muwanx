@@ -1,21 +1,21 @@
 import React, { useEffect, useRef } from 'react';
-import { MujocoRuntime } from '../mujoco/MujocoRuntime';
+import { MuwanxRuntime } from '../core/engine/runtime';
 
-type MujocoViewerProps = {
+type MuwanxViewerProps = {
   scenePath: string;
   baseUrl: string;
   onStatusChange?: (status: string) => void;
   onError?: (error: Error) => void;
 };
 
-const MujocoViewer: React.FC<MujocoViewerProps> = ({
+const MuwanxViewer: React.FC<MuwanxViewerProps> = ({
   scenePath,
   baseUrl,
   onStatusChange,
   onError,
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const runtimeRef = useRef<MujocoRuntime | null>(null);
+  const runtimeRef = useRef<MuwanxRuntime | null>(null);
   const mujocoRef = useRef<any | null>(null);
 
   useEffect(() => {
@@ -41,7 +41,7 @@ const MujocoViewer: React.FC<MujocoViewerProps> = ({
       }
 
       if (!runtimeRef.current) {
-        runtimeRef.current = new MujocoRuntime(mujocoRef.current, container, { baseUrl });
+        runtimeRef.current = new MuwanxRuntime(mujocoRef.current, container, { baseUrl });
       }
 
       notify('Loading scene assets...');
@@ -70,4 +70,4 @@ const MujocoViewer: React.FC<MujocoViewerProps> = ({
   return <div ref={containerRef} className="viewer" />;
 };
 
-export default MujocoViewer;
+export default MuwanxViewer;

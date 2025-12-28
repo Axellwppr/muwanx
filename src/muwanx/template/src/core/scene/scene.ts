@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import type { MjData, MjModel } from 'mujoco-js';
-import { mujocoAssetCollector } from './mujocoAssetCollector';
+import { mujocoAssetCollector } from '../utils/mujocoAssetCollector';
 import { createLights } from './lights';
 import { createTexture } from './textures';
 import { createTendonMeshes } from './tendons';

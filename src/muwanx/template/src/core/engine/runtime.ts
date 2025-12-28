@@ -1,9 +1,9 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import type { MjData, MjModel } from 'mujoco-js';
-import { downloadExampleScenesFolder, getPosition, getQuaternion, loadSceneFromURL } from './scene';
-import { createTendonState, updateTendonGeometry, updateTendonRendering } from './tendons';
-import { updateHeadlightFromCamera, updateLightsFromData } from './lights';
+import { downloadExampleScenesFolder, getPosition, getQuaternion, loadSceneFromURL } from '../scene/scene';
+import { createTendonState, updateTendonGeometry, updateTendonRendering } from '../scene/tendons';
+import { updateHeadlightFromCamera, updateLightsFromData } from '../scene/lights';
 
 type RuntimeOptions = {
   baseUrl?: string;
@@ -14,7 +14,7 @@ type BodyState = {
   quaternion: THREE.Quaternion;
 };
 
-export class MujocoRuntime {
+export class MuwanxRuntime {
   private mujoco: any;
   private container: HTMLElement;
   private baseUrl: string;

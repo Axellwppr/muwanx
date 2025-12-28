@@ -76,4 +76,4 @@ It is also built upon the excellent work of [zalo/mujoco_wasm](https://github.co
 
 ## License
 
-This project is licensed under the [Apache-2.0 License](LICENSE).
+This project is licensed under the [Apache-2.0 License](LICENSE). When using Muwanx, please retain attribution notices in the app.
