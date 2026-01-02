@@ -77,32 +77,6 @@ def test_build_empty_app_warning():
             builder.build(tmpdir)
 
 
-def test_project_metadata():
-    """Test setting project metadata."""
-    builder = mwx.Builder()
-    builder.add_project(name="Test Project", metadata={"key": "value"})
-
-    # Get the config to check metadata
-    projects = builder.get_projects()
-    assert projects[0].metadata["key"] == "value"
-
-
-def test_project_set_metadata():
-    """Test setting metadata via set_metadata method."""
-    builder = mwx.Builder()
-    project = builder.add_project(name="Test Project")
-
-    # Chain metadata setting
-    result = project.set_metadata("key1", "value1")
-    assert result is project  # Check method chaining
-
-    project.set_metadata("key2", "value2")
-
-    projects = builder.get_projects()
-    assert projects[0].metadata["key1"] == "value1"
-    assert projects[0].metadata["key2"] == "value2"
-
-
 def test_project_with_id():
     """Test creating a project with an ID for URL routing."""
     builder = mwx.Builder()

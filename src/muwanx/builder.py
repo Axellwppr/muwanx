@@ -45,16 +45,22 @@ class Builder:
 
         Args:
             name: Name for the project (displayed in the UI).
-            id: Optional ID for URL routing. If not provided, defaults to sanitized name.
+            id: Optional ID for URL routing. If not provided, the first project
+                defaults to None (main route), and subsequent projects default to sanitized name.
 
         Returns:
             ProjectHandle for adding scenes and further configuration.
         """
-        # First project becomes the main project with id=None
-        if not self._projects:
+        # Determine project ID:
+        # - If id is explicitly provided, use it
+        # - First project without id defaults to None (main route)
+        # - Subsequent projects without id default to sanitized name
+        if id is not None:
+            project_id = id
+        elif not self._projects:
             project_id = None
         else:
-            project_id = name2id(name) if id is None else id
+            project_id = name2id(name)
 
         project = ProjectConfig(name=name, id=project_id)
         self._projects.append(project)
