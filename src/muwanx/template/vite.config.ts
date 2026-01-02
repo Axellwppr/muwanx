@@ -18,6 +18,9 @@ export default defineConfig({
         outDir: 'dist',
         assetsDir: 'assets',
         sourcemap: true,
+        rollupOptions: {
+            input: path.resolve(__dirname, 'index.html'),
+        },
     },
     worker: {
         format: 'es',
