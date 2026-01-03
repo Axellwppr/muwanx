@@ -133,7 +133,7 @@ class ClientBuilder:
         try:
             self.create_env(clean=clean)
             self.install_dependencies()
-            env = {"VITE_BASE_PATH": base_path}
+            env = {"MUWANX_BASE_PATH": base_path}
             self.run_build_script("build", env=env)
             print("✓ Client build completed successfully")
         except subprocess.CalledProcessError as e:
