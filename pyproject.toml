@@ -68,7 +68,10 @@ examples = [
 "GitHub" = "https://github.com/ttktjmt/muwanx"
 
 [project.scripts]
-# muwanx-build = "muwanx._autobuild:build_entrypoint"
+demo = "muwanx._cli:demo"
+simple = "muwanx._cli:simple"
+mjlab = "muwanx._cli:mjlab"
+hello-world = "muwanx._cli:hello_world"
 
 [tool.pyright]
 extraPaths = []
