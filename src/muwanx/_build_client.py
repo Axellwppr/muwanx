@@ -96,22 +96,19 @@ class ClientBuilder:
     def install_dependencies(self) -> None:
         npm_bin = self._get_npm_bin()
         package_lock = self.project_dir / "package-lock.json"
-        try:
-            if package_lock.exists():
-                print("Using package-lock.json (npm ci)...")
-                subprocess.check_call([str(npm_bin), "ci"], cwd=self.project_dir)
-            else:
-                print("Installing npm dependencies (npm install)...")
-                subprocess.check_call([str(npm_bin), "install"], cwd=self.project_dir)
-        except subprocess.CalledProcessError:
-            print("npm ci failed, falling back to npm install...")
-            # Remove node_modules and package-lock.json before retrying
-            node_modules = self.project_dir / "node_modules"
-            if node_modules.exists():
-                shutil.rmtree(node_modules)
-            if package_lock.exists():
-                package_lock.unlink()
-            subprocess.check_call([str(npm_bin), "install"], cwd=self.project_dir)
+        node_modules = self.project_dir / "node_modules"
+
+        # In CI environments or cross-platform builds, npm ci can fail with optional dependencies
+        # Remove lock file and node_modules to ensure clean install
+        if package_lock.exists():
+            print("Removing package-lock.json for clean install...")
+            package_lock.unlink()
+        if node_modules.exists():
+            print("Removing node_modules for clean install...")
+            shutil.rmtree(node_modules)
+
+        print("Installing npm dependencies (npm install)...")
+        subprocess.check_call([str(npm_bin), "install"], cwd=self.project_dir)
 
     def run_build_script(
         self, script_name: str = "build", env: dict[str, str] | None = None
