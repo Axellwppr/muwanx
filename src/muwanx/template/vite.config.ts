@@ -4,8 +4,7 @@ import path from 'path';
 
 export default defineConfig({
     plugins: [react()],
-    // Use relative paths for all assets - allows deployment to any subdirectory
-    base: './',
+    base: process.env.MUWANX_BASE_PATH || '/',
     resolve: {
         alias: {
             '@': path.resolve(__dirname, './src'),
