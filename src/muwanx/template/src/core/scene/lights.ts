@@ -1,9 +1,10 @@
 import * as THREE from 'three';
 import type { MjData, MjModel } from 'mujoco-js';
+import type { Mujoco } from '../../types/mujoco';
 import { mjcToThreeCoordinate } from './coordinate';
 
 interface CreateLightsParams {
-  mujoco: any;
+  mujoco: Mujoco;
   mjModel: MjModel;
   mujocoRoot: THREE.Group;
   bodies: Record<number, THREE.Group>;
@@ -66,7 +67,10 @@ export function createLights({
       }
 
       const intensityMultiplier = mjModel.light_intensity[l] || 0.5;
-      (light as any).intensity = luminance * intensityMultiplier * Math.PI;
+      if ('intensity' in light && typeof (light as { intensity?: number }).intensity === 'number') {
+        (light as THREE.PointLight | THREE.DirectionalLight | THREE.SpotLight).intensity =
+          luminance * intensityMultiplier * Math.PI;
+      }
 
       const ambientColor = new THREE.Color().fromArray(
         mjModel.light_ambient.slice(l * 3, l * 3 + 3)
@@ -107,16 +111,26 @@ export function createLights({
       if (lightType !== mujoco.mjtLightType.mjLIGHT_DIRECTIONAL.value) {
         const att = mjModel.light_attenuation.slice(l * 3, l * 3 + 3);
 
-        (light as any).distance = mjModel.light_range[l] ?? 0;
+        if ('distance' in light) {
+          (light as THREE.PointLight | THREE.SpotLight).distance = mjModel.light_range[l] ?? 0;
+        }
 
         if (att[2] > 0) {
-          (light as any).decay = 2;
+          if ('decay' in light) {
+            (light as THREE.PointLight | THREE.SpotLight).decay = 2;
+          }
         } else if (att[1] > 0) {
-          (light as any).decay = 1;
+          if ('decay' in light) {
+            (light as THREE.PointLight | THREE.SpotLight).decay = 1;
+          }
         } else {
-          (light as any).decay = 0;
+          if ('decay' in light) {
+            (light as THREE.PointLight | THREE.SpotLight).decay = 0;
+          }
         }
-        (light as any).distance = mjModel.light_range[l] ?? 0;
+        if ('distance' in light) {
+          (light as THREE.PointLight | THREE.SpotLight).distance = mjModel.light_range[l] ?? 0;
+        }
       }
 
       const bodyId = mjModel.light_bodyid[l];
@@ -134,7 +148,12 @@ export function createLights({
     }
   }
 
-  const vis = (mjModel as any).vis ?? (mjModel as any).visual;
+  const vis =
+    'vis' in mjModel
+      ? (mjModel as unknown as { vis?: { headlight?: { active?: boolean; ambient?: number[]; diffuse?: number[]; specular?: number[] } } }).vis
+      : 'visual' in mjModel
+        ? (mjModel as unknown as { visual?: { headlight?: { active?: boolean; ambient?: number[]; diffuse?: number[]; specular?: number[] } } }).visual
+        : undefined;
   if (vis?.headlight?.active) {
     const headAmbient = new THREE.Color().fromArray(vis.headlight.ambient as number[]);
     ambientSum.add(headAmbient);
@@ -172,14 +191,15 @@ export function createLights({
   return lights;
 }
 
-export function updateLightsFromData(mujoco: any, mjData: MjData, lights: THREE.Light[]): void {
+export function updateLightsFromData(mujoco: Mujoco, mjData: MjData, lights: THREE.Light[]): void {
   if (!mjData || !mjData.light_xpos || !mjData.light_xdir) {
     return;
   }
 
   for (const light of lights) {
-    const idx = (light as any).userData?.mjIndex;
-    const type = (light as any).userData?.mjType;
+    const userData = light.userData as { mjIndex?: number; mjType?: number } | undefined;
+    const idx = userData?.mjIndex;
+    const type = userData?.mjType;
     if (idx == null) {
       continue;
     }
@@ -210,13 +230,14 @@ export function updateLightsFromData(mujoco: any, mjData: MjData, lights: THREE.
 export function updateHeadlightFromCamera(camera: THREE.Camera, lights: THREE.Light[]): void {
   const dir = new THREE.Vector3();
   for (const light of lights) {
-    if (!(light as any).userData?.isHeadlight) {
+    const userData = light.userData as { isHeadlight?: boolean } | undefined;
+    if (!userData?.isHeadlight) {
       continue;
     }
     const dl = light as THREE.DirectionalLight;
     camera.getWorldDirection(dir);
-    dl.position.copy((camera as any).position);
-    dl.target.position.copy((camera as any).position).add(dir);
+    dl.position.copy(camera.position);
+    dl.target.position.copy(camera.position).add(dir);
     dl.target.updateMatrixWorld?.();
   }
 }

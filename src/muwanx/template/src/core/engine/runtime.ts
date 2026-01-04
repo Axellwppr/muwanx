@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import type { MjData, MjModel } from 'mujoco-js';
+import type { Mujoco } from '../../types/mujoco';
 import {
   downloadExampleScenesFolder,
   getPosition,
@@ -20,7 +21,7 @@ type BodyState = {
 };
 
 export class MuwanxRuntime {
-  private mujoco: any;
+  private mujoco: Mujoco;
   private container: HTMLElement;
   private baseUrl: string;
   private scene: THREE.Scene;
@@ -43,7 +44,7 @@ export class MuwanxRuntime {
   private loadingScene: Promise<void> | null;
   private resizeObserver: ResizeObserver | null;
 
-  constructor(mujoco: any, container: HTMLElement, options: RuntimeOptions = {}) {
+  constructor(mujoco: Mujoco, container: HTMLElement, options: RuntimeOptions = {}) {
     this.mujoco = mujoco;
     this.container = container;
     this.baseUrl = options.baseUrl || '/';
@@ -51,15 +52,15 @@ export class MuwanxRuntime {
     const workingPath = '/working';
     try {
       this.mujoco.FS.mkdir(workingPath);
-    } catch (error: any) {
-      if (error?.code !== 'EEXIST') {
+    } catch (error: unknown) {
+      if (error && typeof error === 'object' && 'code' in error && error.code !== 'EEXIST') {
         console.warn('Failed to create /working directory:', error);
       }
     }
     try {
       this.mujoco.FS.mount(this.mujoco.MEMFS, { root: '.' }, workingPath);
-    } catch (error: any) {
-      if (error?.code !== 'EEXIST' && error?.code !== 'EBUSY') {
+    } catch (error: unknown) {
+      if (error && typeof error === 'object' && 'code' in error && error.code !== 'EEXIST' && error.code !== 'EBUSY') {
         console.warn('Failed to mount MEMFS at /working:', error);
       }
     }
@@ -138,10 +139,16 @@ export class MuwanxRuntime {
         this.scene.remove(existingRoot);
       }
 
+      const parent = {
+        mjModel: this.mjModel,
+        mjData: this.mjData,
+        scene: this.scene,
+      };
+
       [this.mjModel, this.mjData, this.bodies, this.lights] = await loadSceneFromURL(
         this.mujoco,
         scenePath,
-        this
+        parent
       );
 
       if (!this.mjModel || !this.mjData) {
@@ -227,13 +234,13 @@ export class MuwanxRuntime {
       }
     }
 
-    if (this.mujocoRoot && (this.mujocoRoot as any).cylinders) {
+    if (this.mujocoRoot && this.mujocoRoot.cylinders) {
       updateTendonGeometry(
         this.mjModel,
         this.mjData,
         {
-          cylinders: (this.mujocoRoot as any).cylinders,
-          spheres: (this.mujocoRoot as any).spheres,
+          cylinders: this.mujocoRoot.cylinders,
+          spheres: this.mujocoRoot.spheres!,
         },
         this.lastSimState.tendons
       );
@@ -257,11 +264,11 @@ export class MuwanxRuntime {
 
       updateLightsFromData(this.mujoco, this.mjData, this.lights);
 
-      if (this.mujocoRoot && (this.mujocoRoot as any).cylinders) {
+      if (this.mujocoRoot && this.mujocoRoot.cylinders) {
         updateTendonRendering(
           {
-            cylinders: (this.mujocoRoot as any).cylinders,
-            spheres: (this.mujocoRoot as any).spheres,
+            cylinders: this.mujocoRoot.cylinders,
+            spheres: this.mujocoRoot.spheres!,
           },
           this.lastSimState.tendons
         );

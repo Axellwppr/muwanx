@@ -32,8 +32,8 @@ export function createTendonMeshes(mujocoRoot: THREE.Group): TendonMeshes {
   spheres.computeBoundingSphere();
   mujocoRoot.add(spheres);
 
-  (mujocoRoot as any).cylinders = cylinders;
-  (mujocoRoot as any).spheres = spheres;
+  mujocoRoot.cylinders = cylinders;
+  mujocoRoot.spheres = spheres;
 
   return { cylinders, spheres };
 }

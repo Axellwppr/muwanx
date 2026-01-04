@@ -105,8 +105,9 @@ export class MuJoCoAssetCollector {
         if (parseError) {
           throw new Error(parseError.textContent || 'Parser error');
         }
-      } catch (error: any) {
-        console.warn(`[MuJoCoAssetCollector] Failed to parse XML ${filePath}:`, error.message);
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        console.warn(`[MuJoCoAssetCollector] Failed to parse XML ${filePath}:`, message);
         return;
       }
 
@@ -168,7 +169,7 @@ export class MuJoCoAssetCollector {
     let xmlDoc: Document;
     try {
       xmlDoc = parser.parseFromString(xmlContent, 'text/xml');
-    } catch (error) {
+    } catch {
       return directories;
     }
 
@@ -245,7 +246,7 @@ export class MuJoCoAssetCollector {
       if (!response.ok) {
         return { path: resolved };
       }
-    } catch (error) {
+    } catch {
       return { path: resolved };
     }
 

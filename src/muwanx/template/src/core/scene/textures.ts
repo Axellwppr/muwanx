@@ -1,8 +1,9 @@
 import * as THREE from 'three';
 import type { MjModel } from 'mujoco-js';
+import type { Mujoco } from '../../types/mujoco';
 
 interface CreateTextureParams {
-  mujoco: any;
+  mujoco: Mujoco;
   mjModel: MjModel;
   texId: number;
 }
@@ -173,7 +174,7 @@ function createCubeTexture(mjModel: MjModel, texId: number): THREE.CubeTexture |
     images.push(canvas);
   }
 
-  cubeTexture.image = images as any;
+  cubeTexture.image = images as unknown as HTMLImageElement[];
 
   if (cubeTexture.image.some((img) => img === null)) {
     console.warn(`Failed to create canvas for one or more faces in texId ${texId}`);

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import type { MjData, MjModel } from 'mujoco-js';
+import type { Mujoco } from '../../types/mujoco';
 import { mujocoAssetCollector } from '../utils/mujocoAssetCollector';
 import { createLights } from './lights';
 import { createTexture } from './textures';
@@ -22,14 +23,14 @@ function isInlineXML(input: string): boolean {
   return trimmed.startsWith('<mujoco') || trimmed.startsWith('<?xml');
 }
 
-function ensureWorkingDirectories(mujoco: any, segments: string[]): void {
+function ensureWorkingDirectories(mujoco: Mujoco, segments: string[]): void {
   if (!segments.length) {
     return;
   }
   let working = '/working';
   for (const segment of segments) {
     working += `/${segment}`;
-    if (!mujoco.FS.analyzePath(working).exists) {
+    if (!mujoco.FS.analyzePath(working, false).exists) {
       mujoco.FS.mkdir(working);
     }
   }
@@ -56,7 +57,19 @@ function normalizePathSegments(path: string): string {
   return resolved.join('/');
 }
 
-export async function loadSceneFromURL(mujoco: any, filename: string, parent: any): Promise<any[]> {
+export async function loadSceneFromURL(
+  mujoco: Mujoco,
+  filename: string,
+  parent: {
+    mjModel: MjModel | null;
+    mjData: MjData | null;
+    scene: THREE.Scene;
+    bodies?: Record<number, THREE.Group>;
+    lights?: THREE.Light[];
+    meshes?: Record<number, THREE.BufferGeometry>;
+    mujocoRoot?: THREE.Group;
+  }
+): Promise<[MjModel, MjData, Record<number, THREE.Group>, THREE.Light[]]> {
   if (parent.mjData != null) {
     try {
       parent.mjData.delete();
@@ -94,40 +107,41 @@ export async function loadSceneFromURL(mujoco: any, filename: string, parent: an
   }
 
   try {
-    const exists = mujoco.FS.analyzePath(modelPath).exists;
+    const exists = mujoco.FS.analyzePath(modelPath, false).exists;
     if (!exists) {
       throw new Error(`Scene XML not found at ${modelPath}`);
     }
-  } catch (error: any) {
-    throw new Error(`Scene XML not accessible at ${modelPath}: ${error?.message || error}`);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Scene XML not accessible at ${modelPath}: ${message}`);
   }
 
   let newModel: MjModel | null = null;
   try {
-    // Check if the model is in binary format (.mjb)
+    // Note: Binary format (.mjb) not directly supported, use XML
     if (modelPath.toLowerCase().endsWith('.mjb')) {
-      newModel = mujoco.MjModel.loadFromBinary(modelPath);
-    } else {
-      newModel = mujoco.MjModel.loadFromXML(modelPath);
+      throw new Error('Binary model format (.mjb) requires XML conversion');
     }
-  } catch (error: any) {
-    throw new Error(`Failed to load MjModel from ${modelPath}: ${error?.message || error}`);
+    newModel = mujoco.MjModel.loadFromXML(modelPath);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Failed to load MjModel from ${modelPath}: ${message}`);
   }
   if (!newModel) {
-    const method = modelPath.toLowerCase().endsWith('.mjb') ? 'loadFromBinary' : 'loadFromXML';
-    throw new Error(`MjModel.${method} returned null for ${modelPath}`);
+    throw new Error(`MjModel.loadFromXML returned null for ${modelPath}`);
   }
 
   let newData: MjData | null = null;
   try {
     newData = new mujoco.MjData(newModel);
-  } catch (error: any) {
+  } catch (error: unknown) {
     try {
       newModel.delete();
     } catch {
       // ignore
     }
-    throw new Error(`Failed to create MjData: ${error?.message || error}`);
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Failed to create MjData: ${message}`);
   }
   if (!newData) {
     try {
@@ -370,8 +384,12 @@ export async function loadSceneFromURL(mujoco: any, filename: string, parent: an
       if (!(texture instanceof THREE.CubeTexture)) {
         (currentMaterial as THREE.MeshPhysicalMaterial).map = texture;
       } else {
-        if (type === mujoco.mjtGeom.mjGEOM_BOX.value && Array.isArray((texture as any).image)) {
-          const images: HTMLCanvasElement[] = (texture as any).image as HTMLCanvasElement[];
+        if (
+          type === mujoco.mjtGeom.mjGEOM_BOX.value &&
+          Array.isArray(texture.image) &&
+          texture.image.length === 6
+        ) {
+          const images = texture.image as unknown as HTMLCanvasElement[];
           if (images.length === 6) {
             if (geometry && geometry.groups && geometry.groups.length !== 6) {
               geometry.clearGroups();
@@ -434,7 +452,7 @@ export async function loadSceneFromURL(mujoco: any, filename: string, parent: an
       continue;
     }
 
-    const mesh = new THREE.Mesh(geometry, currentMaterial as any);
+    const mesh = new THREE.Mesh(geometry, currentMaterial as THREE.Material);
 
     mesh.castShadow = g === 0 ? false : true;
     mesh.receiveShadow = type !== mujoco.mjtGeom.mjGEOM_MESH.value;
@@ -472,7 +490,7 @@ export async function loadSceneFromURL(mujoco: any, filename: string, parent: an
   parent.meshes = meshes;
   parent.mujocoRoot = mujocoRoot;
 
-  if (!mjModel || (mjModel as any).deleted) {
+  if (!mjModel || 'deleted' in mjModel) {
     throw new Error('loadSceneFromURL: mjModel is invalid or already deleted');
   }
 
@@ -518,7 +536,7 @@ export function toMujocoPos(target: THREE.Vector3): THREE.Vector3 {
 }
 
 export async function downloadExampleScenesFolder(
-  mujoco: any,
+  mujoco: Mujoco,
   scenePath: string,
   baseUrl: string = DEFAULT_BASE_URL
 ): Promise<void> {
@@ -574,7 +592,7 @@ export async function downloadExampleScenesFolder(
       if (manifest.length === 0) {
         throw new Error('No assets found by collector');
       }
-    } catch (error: any) {
+    } catch {
       try {
         const manifestResponse = await fetch(
           `${basePrefix}/${xmlDirectory}/index.json`.replace(/\/+/g, '/')
@@ -588,9 +606,11 @@ export async function downloadExampleScenesFolder(
         if (!Array.isArray(manifest)) {
           throw new Error(`Invalid scene manifest for ${xmlDirectory}`);
         }
-      } catch (fallbackError: any) {
+      } catch (fallbackError: unknown) {
+        const fallbackMsg =
+          fallbackError instanceof Error ? fallbackError.message : String(fallbackError);
         throw new Error(
-          `Both asset analysis and index.json fallback failed: ${fallbackError.message}`
+          `Both asset analysis and index.json fallback failed: ${fallbackMsg}`
         );
       }
     }
