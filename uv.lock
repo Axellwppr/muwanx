@@ -1406,6 +1406,7 @@ source = { editable = "." }
 dependencies = [
     { name = "mujoco", version = "3.4.1.dev845217293", source = { registry = "https://py.mujoco.org/" }, marker = "platform_machine == 'arm64' and sys_platform == 'darwin'" },
     { name = "mujoco", version = "3.4.1.dev845229292", source = { registry = "https://py.mujoco.org/" }, marker = "platform_machine != 'arm64' or sys_platform != 'darwin'" },
+    { name = "nodeenv" },
     { name = "onnx" },
     { name = "wandb" },
 ]
@@ -1429,6 +1430,7 @@ requires-dist = [
     { name = "mjlab", marker = "extra == 'examples'", git = "https://github.com/mujocolab/mjlab.git?rev=5ea83b3ea0e8586882d2b516f72ea6a887149913" },
     { name = "mujoco", specifier = ">=3.2.3", index = "https://py.mujoco.org/" },
     { name = "mujoco-warp", marker = "extra == 'examples'" },
+    { name = "nodeenv", specifier = ">=1.9.1" },
     { name = "nodeenv", marker = "extra == 'dev'", specifier = ">=1.9.0" },
     { name = "onnx", specifier = ">=1.20.0" },
     { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=3.3.2" },
