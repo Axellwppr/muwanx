@@ -1,9 +1,11 @@
 name: deploy
 
 on:
-  push:
-    branches: [ reorg ]
   workflow_dispatch:
+  push:
+    branches: [main, reorg]
+  pull_request:
+    branches: [main, reorg]
 
 permissions:
   contents: write
