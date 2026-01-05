@@ -1,0 +1,40 @@
+{
+  "name": "muwanx",
+  "version": "0.0.2",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ttktjmt/muwanx.git"
+  },
+  "scripts": {
+    "dev": "vite --host",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "lint": "eslint src/",
+    "lint:fix": "eslint src/ --fix",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@mantine/core": "^7.17.8",
+    "@mantine/hooks": "^7.15.0",
+    "@tabler/icons-react": "^3.0.0",
+    "mujoco-js": "^0.0.7",
+    "onnxruntime-web": "^1.21.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "three": "^0.181.1"
+  },
+  "devDependencies": {
+    "@types/node": "^25.0.3",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "@types/three": "^0.181.0",
+    "@typescript-eslint/eslint-plugin": "^8.50.1",
+    "@typescript-eslint/parser": "^8.50.1",
+    "@vitejs/plugin-react": "^4.2.0",
+    "eslint": "^9.39.2",
+    "globals": "^15.11.0",
+    "typescript": "^5.9.3",
+    "vite": "^5.0.0"
+  }
+}

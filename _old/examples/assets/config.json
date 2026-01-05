@@ -1,0 +1,40 @@
+{
+  "project_name": "Muwanx Demo",
+  "project_link": "https://github.com/ttktjmt/muwanx",
+  "tasks": [
+    {
+      "id": "1",
+      "name": "Go2",
+      "model_xml": "./assets/scene/unitree_go2/scene.xml",
+      "asset_meta": "./assets/policy/go2/asset_meta.json",
+      "default_policy": "facet",
+      "policies": [
+        { "id": "facet", "name": "Facet", "path": "./assets/policy/go2/policy-05-03_21-31.json", "ui_controls": ["setpoint", "stiffness"] },
+        { "id": "robust", "name": "Robust", "path": "./assets/policy/go2/robust.json", "ui_controls": [] },
+        { "id": "vanilla", "name": "Vanilla", "path": "./assets/policy/go2/vanilla.json", "ui_controls": [] }
+      ]
+    },
+    {
+      "id": "2",
+      "name": "Go1",
+      "model_xml": "./assets/scene/unitree_go1/go1.xml",
+      "asset_meta": "./assets/policy/go1/asset_meta.json",
+      "default_policy": "him",
+      "policies": [
+        { "id": "him", "name": "HIMLoco", "path": "./assets/policy/go1/go1_him.json", "ui_controls": [] },
+        { "id": "decap", "name": "Decap", "path": "./assets/policy/go1/go1_decap.json", "ui_controls": [] }
+      ]
+    },
+    {
+      "id": "3",
+      "name": "G1",
+      "model_xml": "./assets/scene/unitree_g1/scene.xml",
+      "asset_meta": "./assets/policy/unitree_g1/asset_meta.json",
+      "default_policy": "locomotion",
+      "policies": [
+        { "id": "locomotion", "name": "Loco", "path": "./assets/policy/unitree_g1/g1_velocity.json", "ui_controls": [] },
+        { "id": "balance", "name": "OneLeg", "path": "./assets/policy/unitree_g1/single_foot_balance.json", "ui_controls": [] }
+      ]
+    }
+  ]
+}

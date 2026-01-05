@@ -1,0 +1,518 @@
+{
+  "project_name": "MuJoCo Menagerie",
+  "project_link": "https://github.com/google-deepmind/mujoco_menagerie",
+  "tasks": [
+    {
+      "id": "1",
+      "name": "Agilex Piper",
+      "model_xml": "./assets/scene/mujoco_menagerie/agilex_piper/scene.xml",
+      "asset_meta": null,
+      "default_policy": null,
+      "policies": []
+    },
+    {
+      "id": "2",
+      "name": "Agility Cassie",
+      "model_xml": "./assets/scene/mujoco_menagerie/agility_cassie/scene.xml",
+      "asset_meta": null,
+      "default_policy": null,
+      "policies": []
+    },
+    {
+      "id": "3",
+      "name": "ALOHA",
+      "model_xml": "./assets/scene/mujoco_menagerie/aloha/scene.xml",
+      "asset_meta": null,
+      "default_policy": null,
+      "policies": []
+    },
+    {
+      "id": "4",
+      "name": "ANYmal B",
+      "model_xml": "./assets/scene/mujoco_menagerie/anybotics_anymal_b/scene.xml",
+      "asset_meta": null,
+      "default_policy": null,
+      "policies": []
+    },
+    {
+      "id": "5",
+      "name": "ANYmal C",
+      "model_xml": "./assets/scene/mujoco_menagerie/anybotics_anymal_c/scene.xml",
+      "asset_meta": null,
+      "default_policy": null,
+      "policies": []
+    },
+    {
+      "id": "6",
+      "name": "Apptronik Apollo",
+      "model_xml": "./assets/scene/mujoco_menagerie/apptronik_apollo/scene.xml",
+      "asset_meta": null,
+      "default_policy": null,
+      "policies": []
+    },
+    {
+      "id": "7",
+      "name": "ARX L5",
+      "model_xml": "./assets/scene/mujoco_menagerie/arx_l5/scene.xml",
+      "asset_meta": null,
+      "default_policy": null,
+      "policies": []
+    },
+    {
+      "id": "8",
+      "name": "Berkeley Humanoid",
+      "model_xml": "./assets/scene/mujoco_menagerie/berkeley_humanoid/scene.xml",
+      "asset_meta": null,
+      "default_policy": null,
+      "policies": []
+    },
+    {
+      "id": "9",
+      "name": "Bitcraze Crazyflie 2",
+      "model_xml": "./assets/scene/mujoco_menagerie/bitcraze_crazyflie_2/scene.xml",
+      "asset_meta": null,
+      "default_policy": null,
+      "policies": []
+    },
+    {
+      "id": "10",
+      "name": "Booster T1",
+      "model_xml": "./assets/scene/mujoco_menagerie/booster_t1/scene.xml",
+      "asset_meta": null,
+      "default_policy": null,
+      "policies": []
+    },
+    {
+      "id": "11",
+      "name": "Boston Dynamics Spot",
+      "model_xml": "./assets/scene/mujoco_menagerie/boston_dynamics_spot/scene.xml",
+      "asset_meta": null,
+      "default_policy": null,
+      "policies": []
+    },
+    {
+      "id": "12",
+      "name": "Dynamixel 2R",
+      "model_xml": "./assets/scene/mujoco_menagerie/dynamixel_2r/scene.xml",
+      "asset_meta": null,
+      "default_policy": null,
+      "policies": []
+    },
+    {
+      "id": "13",
+      "name": "Flybody",
+      "model_xml": "./assets/scene/mujoco_menagerie/flybody/scene.xml",
+      "asset_meta": null,
+      "default_policy": null,
+      "policies": []
+    },
+    {
+      "id": "14",
+      "name": "Fourier N1",
+      "model_xml": "./assets/scene/mujoco_menagerie/fourier_n1/scene.xml",
+      "asset_meta": null,
+      "default_policy": null,
+      "policies": []
+    },
+    {
+      "id": "15",
+      "name": "Franka Emika Panda",
+      "model_xml": "./assets/scene/mujoco_menagerie/franka_emika_panda/scene.xml",
+      "asset_meta": null,
+      "default_policy": null,
+      "policies": []
+    },
+    {
+      "id": "16",
+      "name": "Franka FR3",
+      "model_xml": "./assets/scene/mujoco_menagerie/franka_fr3/scene.xml",
+      "asset_meta": null,
+      "default_policy": null,
+      "policies": []
+    },
+    {
+      "id": "17",
+      "name": "Google Barkour v0",
+      "model_xml": "./assets/scene/mujoco_menagerie/google_barkour_v0/scene.xml",
+      "asset_meta": null,
+      "default_policy": null,
+      "policies": []
+    },
+    {
+      "id": "18",
+      "name": "Google Barkour vB",
+      "model_xml": "./assets/scene/mujoco_menagerie/google_barkour_vb/scene.xml",
+      "asset_meta": null,
+      "default_policy": null,
+      "policies": []
+    },
+    {
+      "id": "19",
+      "name": "Google Robot",
+      "model_xml": "./assets/scene/mujoco_menagerie/google_robot/scene.xml",
+      "asset_meta": null,
+      "default_policy": null,
+      "policies": []
+    },
+    {
+      "id": "20",
+      "name": "Hello Robot Stretch",
+      "model_xml": "./assets/scene/mujoco_menagerie/hello_robot_stretch/scene.xml",
+      "asset_meta": null,
+      "default_policy": null,
+      "policies": []
+    },
+    {
+      "id": "21",
+      "name": "Hello Robot Stretch 3",
+      "model_xml": "./assets/scene/mujoco_menagerie/hello_robot_stretch_3/scene.xml",
+      "asset_meta": null,
+      "default_policy": null,
+      "policies": []
+    },
+    {
+      "id": "22",
+      "name": "i2RT YAM",
+      "model_xml": "./assets/scene/mujoco_menagerie/i2rt_yam/scene.xml",
+      "asset_meta": null,
+      "default_policy": null,
+      "policies": []
+    },
+    {
+      "id": "23",
+      "name": "IIT SoftFoot",
+      "model_xml": "./assets/scene/mujoco_menagerie/iit_softfoot/scene.xml",
+      "asset_meta": null,
+      "default_policy": null,
+      "policies": []
+    },
+    {
+      "id": "24",
+      "name": "Kinova Gen3",
+      "model_xml": "./assets/scene/mujoco_menagerie/kinova_gen3/scene.xml",
+      "asset_meta": null,
+      "default_policy": null,
+      "policies": []
+    },
+    {
+      "id": "25",
+      "name": "KUKA iiwa 14",
+      "model_xml": "./assets/scene/mujoco_menagerie/kuka_iiwa_14/scene.xml",
+      "asset_meta": null,
+      "default_policy": null,
+      "policies": []
+    },
+    {
+      "id": "26",
+      "name": "LEAP Hand Left",
+      "model_xml": "./assets/scene/mujoco_menagerie/leap_hand/scene_left.xml",
+      "asset_meta": null,
+      "default_policy": null,
+      "policies": []
+    },
+    {
+      "id": "27",
+      "name": "LEAP Hand Right",
+      "model_xml": "./assets/scene/mujoco_menagerie/leap_hand/scene_right.xml",
+      "asset_meta": null,
+      "default_policy": null,
+      "policies": []
+    },
+    {
+      "id": "28",
+      "name": "Low Cost Robot Arm",
+      "model_xml": "./assets/scene/mujoco_menagerie/low_cost_robot_arm/scene.xml",
+      "asset_meta": null,
+      "default_policy": null,
+      "policies": []
+    },
+    {
+      "id": "29",
+      "name": "PAL Talos (Motor Control)",
+      "model_xml": "./assets/scene/mujoco_menagerie/pal_talos/scene_motor.xml",
+      "asset_meta": null,
+      "default_policy": null,
+      "policies": []
+    },
+    {
+      "id": "30",
+      "name": "PAL Talos (Position Control)",
+      "model_xml": "./assets/scene/mujoco_menagerie/pal_talos/scene_position.xml",
+      "asset_meta": null,
+      "default_policy": null,
+      "policies": []
+    },
+    {
+      "id": "31",
+      "name": "PAL TIAGo (Motor Control)",
+      "model_xml": "./assets/scene/mujoco_menagerie/pal_tiago/scene_motor.xml",
+      "asset_meta": null,
+      "default_policy": null,
+      "policies": []
+    },
+    {
+      "id": "32",
+      "name": "PAL TIAGo (Position Control)",
+      "model_xml": "./assets/scene/mujoco_menagerie/pal_tiago/scene_position.xml",
+      "asset_meta": null,
+      "default_policy": null,
+      "policies": []
+    },
+    {
+      "id": "33",
+      "name": "PAL TIAGo (Velocity Control)",
+      "model_xml": "./assets/scene/mujoco_menagerie/pal_tiago/scene_velocity.xml",
+      "asset_meta": null,
+      "default_policy": null,
+      "policies": []
+    },
+    {
+      "id": "34",
+      "name": "PAL TIAGo Dual (Motor Control)",
+      "model_xml": "./assets/scene/mujoco_menagerie/pal_tiago_dual/scene_motor.xml",
+      "asset_meta": null,
+      "default_policy": null,
+      "policies": []
+    },
+    {
+      "id": "35",
+      "name": "PAL TIAGo Dual (Position Control)",
+      "model_xml": "./assets/scene/mujoco_menagerie/pal_tiago_dual/scene_position.xml",
+      "asset_meta": null,
+      "default_policy": null,
+      "policies": []
+    },
+    {
+      "id": "36",
+      "name": "PAL TIAGo Dual (Velocity Control)",
+      "model_xml": "./assets/scene/mujoco_menagerie/pal_tiago_dual/scene_velocity.xml",
+      "asset_meta": null,
+      "default_policy": null,
+      "policies": []
+    },
+    {
+      "id": "37",
+      "name": "PNDBiotics Adam Lite",
+      "model_xml": "./assets/scene/mujoco_menagerie/pndbotics_adam_lite/scene.xml",
+      "asset_meta": null,
+      "default_policy": null,
+      "policies": []
+    },
+    {
+      "id": "38",
+      "name": "Rethink Robotics Sawyer",
+      "model_xml": "./assets/scene/mujoco_menagerie/rethink_robotics_sawyer/scene.xml",
+      "asset_meta": null,
+      "default_policy": null,
+      "policies": []
+    },
+    {
+      "id": "39",
+      "name": "Robot Soccer Kit",
+      "model_xml": "./assets/scene/mujoco_menagerie/robot_soccer_kit/scene.xml",
+      "asset_meta": null,
+      "default_policy": null,
+      "policies": []
+    },
+    {
+      "id": "40",
+      "name": "Robotiq 2F85",
+      "model_xml": "./assets/scene/mujoco_menagerie/robotiq_2f85/scene.xml",
+      "asset_meta": null,
+      "default_policy": null,
+      "policies": []
+    },
+    {
+      "id": "41",
+      "name": "Robotiq 2F85 v4",
+      "model_xml": "./assets/scene/mujoco_menagerie/robotiq_2f85_v4/scene.xml",
+      "asset_meta": null,
+      "default_policy": null,
+      "policies": []
+    },
+    {
+      "id": "42",
+      "name": "Robotis OP3",
+      "model_xml": "./assets/scene/mujoco_menagerie/robotis_op3/scene.xml",
+      "asset_meta": null,
+      "default_policy": null,
+      "policies": []
+    },
+    {
+      "id": "43",
+      "name": "Shadow DEXEE",
+      "model_xml": "./assets/scene/mujoco_menagerie/shadow_dexee/scene.xml",
+      "asset_meta": null,
+      "default_policy": null,
+      "policies": []
+    },
+    {
+      "id": "44",
+      "name": "Shadow Hand Left",
+      "model_xml": "./assets/scene/mujoco_menagerie/shadow_hand/scene_left.xml",
+      "asset_meta": null,
+      "default_policy": null,
+      "policies": []
+    },
+    {
+      "id": "45",
+      "name": "Shadow Hand Right",
+      "model_xml": "./assets/scene/mujoco_menagerie/shadow_hand/scene_right.xml",
+      "asset_meta": null,
+      "default_policy": null,
+      "policies": []
+    },
+    {
+      "id": "46",
+      "name": "Skydio X2",
+      "model_xml": "./assets/scene/mujoco_menagerie/skydio_x2/scene.xml",
+      "asset_meta": null,
+      "default_policy": null,
+      "policies": []
+    },
+    {
+      "id": "47",
+      "name": "Stanford TidyBot",
+      "model_xml": "./assets/scene/mujoco_menagerie/stanford_tidybot/scene.xml",
+      "asset_meta": null,
+      "default_policy": null,
+      "policies": []
+    },
+    {
+      "id": "48",
+      "name": "TetherIA Aero Hand Open",
+      "model_xml": "./assets/scene/mujoco_menagerie/tetheria_aero_hand_open/scene_right.xml",
+      "asset_meta": null,
+      "default_policy": null,
+      "policies": []
+    },
+    {
+      "id": "49",
+      "name": "Trossen VX300S",
+      "model_xml": "./assets/scene/mujoco_menagerie/trossen_vx300s/scene.xml",
+      "asset_meta": null,
+      "default_policy": null,
+      "policies": []
+    },
+    {
+      "id": "50",
+      "name": "Trossen WX250S",
+      "model_xml": "./assets/scene/mujoco_menagerie/trossen_wx250s/scene.xml",
+      "asset_meta": null,
+      "default_policy": null,
+      "policies": []
+    },
+    {
+      "id": "51",
+      "name": "TRS SO-ARM100",
+      "model_xml": "./assets/scene/mujoco_menagerie/trs_so_arm100/scene.xml",
+      "asset_meta": null,
+      "default_policy": null,
+      "policies": []
+    },
+    {
+      "id": "52",
+      "name": "UFactory Lite6",
+      "model_xml": "./assets/scene/mujoco_menagerie/ufactory_lite6/scene.xml",
+      "asset_meta": null,
+      "default_policy": null,
+      "policies": []
+    },
+    {
+      "id": "53",
+      "name": "UFactory xArm7",
+      "model_xml": "./assets/scene/mujoco_menagerie/ufactory_xarm7/scene.xml",
+      "asset_meta": null,
+      "default_policy": null,
+      "policies": []
+    },
+    {
+      "id": "54",
+      "name": "UMI Gripper",
+      "model_xml": "./assets/scene/mujoco_menagerie/umi_gripper/scene.xml",
+      "asset_meta": null,
+      "default_policy": null,
+      "policies": []
+    },
+    {
+      "id": "55",
+      "name": "Unitree A1",
+      "model_xml": "./assets/scene/mujoco_menagerie/unitree_a1/scene.xml",
+      "asset_meta": null,
+      "default_policy": null,
+      "policies": []
+    },
+    {
+      "id": "56",
+      "name": "Unitree G1",
+      "model_xml": "./assets/scene/mujoco_menagerie/unitree_g1/scene.xml",
+      "asset_meta": null,
+      "default_policy": null,
+      "policies": []
+    },
+    {
+      "id": "57",
+      "name": "Unitree Go1",
+      "model_xml": "./assets/scene/mujoco_menagerie/unitree_go1/scene.xml",
+      "asset_meta": null,
+      "default_policy": null,
+      "policies": []
+    },
+    {
+      "id": "58",
+      "name": "Unitree Go2",
+      "model_xml": "./assets/scene/mujoco_menagerie/unitree_go2/scene.xml",
+      "asset_meta": null,
+      "default_policy": null,
+      "policies": []
+    },
+    {
+      "id": "59",
+      "name": "Unitree H1",
+      "model_xml": "./assets/scene/mujoco_menagerie/unitree_h1/scene.xml",
+      "asset_meta": null,
+      "default_policy": null,
+      "policies": []
+    },
+    {
+      "id": "60",
+      "name": "Unitree Z1",
+      "model_xml": "./assets/scene/mujoco_menagerie/unitree_z1/scene.xml",
+      "asset_meta": null,
+      "default_policy": null,
+      "policies": []
+    },
+    {
+      "id": "61",
+      "name": "Universal Robots UR5e",
+      "model_xml": "./assets/scene/mujoco_menagerie/universal_robots_ur5e/scene.xml",
+      "asset_meta": null,
+      "default_policy": null,
+      "policies": []
+    },
+    {
+      "id": "62",
+      "name": "Universal Robots UR10e",
+      "model_xml": "./assets/scene/mujoco_menagerie/universal_robots_ur10e/scene.xml",
+      "asset_meta": null,
+      "default_policy": null,
+      "policies": []
+    },
+    {
+      "id": "63",
+      "name": "Wonik Allegro Left",
+      "model_xml": "./assets/scene/mujoco_menagerie/wonik_allegro/scene_left.xml",
+      "asset_meta": null,
+      "default_policy": null,
+      "policies": []
+    },
+    {
+      "id": "64",
+      "name": "Wonik Allegro Right",
+      "model_xml": "./assets/scene/mujoco_menagerie/wonik_allegro/scene_right.xml",
+      "asset_meta": null,
+      "default_policy": null,
+      "policies": []
+    }
+  ]
+}

@@ -1,0 +1,129 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build]
+exclude = ["src/muwanx/template/.nodeenv", "src/muwanx/template/node_modules", "**/__pycache__/**"]
+# Client build is in the gitignore, but we still want it in the distribution.
+ignore-vcs = true
+
+[tool.hatch.version]
+path = "src/muwanx/__init__.py"
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.sdist]
+only-include = ["src/muwanx"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/muwanx"]
+
+[project]
+name = "muwanx"
+dynamic = ["version"]
+authors = [
+    {name = "Tatsuki Tsujimoto", email = "tatsuki.tsujimoto@gmail.com"},
+]
+description = "Browser-based MuJoCo simulation with real-time policy control"
+readme = "README.md"
+license = { text="Apache-2.0" }
+requires-python = ">=3.10"
+classifiers = [
+    "Development Status :: 1 - Planning",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3 :: Only",
+    "Typing :: Typed",
+    "Topic :: Scientific/Engineering",
+    "Natural Language :: English",
+]
+dependencies = [
+    "mujoco>=3.2.3",
+    "nodeenv>=1.9.1",
+    "onnx>=1.20.0",
+    "wandb>=0.23.1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pyright>=1.1.407",
+    "pre-commit>=3.3.2",
+    "ruff>=0.14.9",
+    "pytest>=9.0.2",
+    "nodeenv>=1.9.0",
+]
+examples = [
+    "mjlab @ git+https://github.com/mujocolab/mjlab.git@5ea83b3ea0e8586882d2b516f72ea6a887149913",
+    "mujoco-warp",
+    "torch>=2.9.1",
+]
+
+[project.urls]
+"GitHub" = "https://github.com/ttktjmt/muwanx"
+
+[project.scripts]
+demo = "muwanx._cli:demo"
+simple = "muwanx._cli:simple"
+mjlab = "muwanx._cli:mjlab"
+hello-world = "muwanx._cli:hello_world"
+
+[tool.pyright]
+extraPaths = []
+exclude = ["./docs/**/*", "./examples/assets/**/*", "./src/muwanx/template/.nodeenv", "./build"]
+
+[tool.ruff]
+lint.select = [
+    "E",  # pycodestyle errors.
+    "F",  # Pyflakes rules.
+    "PLC",  # Pylint convention warnings.
+    "PLE",  # Pylint errors.
+    "PLR",  # Pylint refactor recommendations.
+    "PLW",  # Pylint warnings.
+    "I",  # Import sorting.
+]
+lint.ignore = [
+    "E731",  # Do not assign a lambda expression, use a def.
+    "E741",  # Ambiguous variable name. (l, O, or I)
+    "E501",  # Line too long.
+    "E721",  # Do not compare types, use `isinstance()`.
+    "F722",  # Forward annotation false positive from jaxtyping. Should be caught by pyright.
+    "F821",  # Forward annotation false positive from jaxtyping. Should be caught by pyright.
+    "PLR2004",  # Magic value used in comparison.
+    "PLR0915",  # Too many statements.
+    "PLR0913",  # Too many arguments.
+    "PLC0414",  # Import alias does not rename variable. (this is used for exporting names)
+    "PLC0415",  # Import should be at the top-level of a file.
+    "PLC1901",  # Use falsey strings.
+    "PLR5501",  # Use `elif` instead of `else if`.
+    "PLR0911",  # Too many return statements.
+    "PLR0912",  # Too many branches.
+    "PLW0603",  # Global statement updates are discouraged.
+    "PLW2901",  # For loop variable overwritten.
+    "PLW0642",  # Reassigned self in instance method.
+]
+exclude = [ ".nodeenv", "typings" ]
+
+[tool.uv]
+required-environments = [
+    "sys_platform == 'darwin' and platform_machine == 'arm64'",
+    "sys_platform == 'linux' and platform_machine == 'x86_64'",
+]
+
+[[tool.uv.index]]
+name = "mujoco"
+url = "https://py.mujoco.org"
+explicit = true
+
+[tool.uv.sources]
+warp-lang = { index = "nvidia", marker = "sys_platform != 'darwin'" }
+mujoco = { index = "mujoco" }
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

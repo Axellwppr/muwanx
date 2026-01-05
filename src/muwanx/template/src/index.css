@@ -1,0 +1,140 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+:root {
+  --hud-bg: rgba(16, 18, 32, 0.82);
+  --hud-border: rgba(255, 255, 255, 0.12);
+  --hud-text: #f4f5f7;
+  --hud-muted: rgba(244, 245, 247, 0.6);
+  --hud-accent: #ffb86b;
+  --hud-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: 'Space Grotesk', 'Segoe UI', sans-serif;
+  background: #0b0f17;
+  color: var(--hud-text);
+  overflow: hidden;
+}
+
+.app {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.viewer {
+  position: absolute;
+  inset: 0;
+}
+
+.viewer canvas {
+  display: block;
+}
+
+.hud {
+  position: absolute;
+  top: 24px;
+  left: 24px;
+  display: grid;
+  gap: 12px;
+  padding: 16px 18px;
+  background: linear-gradient(135deg, rgba(16, 18, 32, 0.92), rgba(10, 12, 20, 0.6));
+  border: 1px solid var(--hud-border);
+  border-radius: 16px;
+  box-shadow: var(--hud-shadow);
+  backdrop-filter: blur(12px);
+  max-width: min(420px, calc(100vw - 48px));
+}
+
+.hud-title {
+  margin: 0;
+  font-size: 1.4rem;
+  letter-spacing: 0.02em;
+}
+
+.hud-message {
+  margin: 0;
+  color: var(--hud-muted);
+}
+
+.hud-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 0.95rem;
+}
+
+.hud-kicker {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: var(--hud-muted);
+}
+
+.hud-value {
+  font-weight: 600;
+}
+
+.hud-tag {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(255, 184, 107, 0.18);
+  color: var(--hud-accent);
+  font-size: 0.75rem;
+}
+
+.hud-muted {
+  color: var(--hud-muted);
+}
+
+.hud-links {
+  gap: 8px;
+}
+
+.hud-link {
+  color: var(--hud-text);
+  text-decoration: none;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: rgba(255, 255, 255, 0.06);
+  font-size: 0.8rem;
+}
+
+.hud-link:hover {
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.hud-link.active {
+  background: rgba(255, 184, 107, 0.2);
+  color: var(--hud-accent);
+  border-color: rgba(255, 184, 107, 0.4);
+}
+
+.hud-error {
+  background: rgba(92, 16, 16, 0.9);
+  border-color: rgba(255, 106, 106, 0.45);
+}
+
+@media (max-width: 640px) {
+  .hud {
+    top: 16px;
+    left: 16px;
+    right: 16px;
+    max-width: calc(100vw - 32px);
+  }
+}

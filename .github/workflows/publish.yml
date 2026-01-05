@@ -1,0 +1,38 @@
+name: publish
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: pypi
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Make sure tests pass
+        run: uv run --extra dev --python 3.12 pytest
+
+      - name: Strip unsupported tags in README
+        run: |
+          sed -i '/<!-- pypi-strip -->/,/<!-- \/pypi-strip -->/d' README.md
+
+      - name: Only bundle client build for PyPI release
+        run: |
+          mv src/muwanx/template/build ./__built_client
+          rm -rf src/muwanx/template/*
+          git checkout src/muwanx/template
+          mv ./__built_client src/muwanx/template/build
+
+      - name: Build and publish
+        env:
+          UV_PUBLISH_USERNAME: __token__
+          UV_PUBLISH_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+        run: |
+          uv build
+          uv publish

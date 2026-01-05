@@ -1,0 +1,9 @@
+[submodule "examples/assets/scene/myosuite"]
+	path = examples/assets/scene/myosuite
+	url = https://github.com/myohub/myosuite.git
+[submodule "examples/assets/scene/mujoco_menagerie"]
+	path = examples/assets/scene/mujoco_menagerie
+	url = https://github.com/google-deepmind/mujoco_menagerie.git
+[submodule "examples/assets/scene/mujoco_playground"]
+	path = examples/assets/scene/mujoco_playground
+	url = https://github.com/ttktjmt/mujoco_playground.git

@@ -1,0 +1,5 @@
+include README.md
+include LICENSE
+recursive-include muwanx *.py
+recursive-include muwanx/templates *.html
+include muwanx/py.typed
