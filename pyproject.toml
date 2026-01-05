@@ -60,7 +60,7 @@ dev = [
     "nodeenv>=1.9.0",
 ]
 examples = [
-    "mjlab @ git+https://github.com/mujocolab/mjlab.git@5ea83b3ea0e8586882d2b516f72ea6a887149913",
+    # "mjlab @ git+https://github.com/mujocolab/mjlab.git@5ea83b3ea0e8586882d2b516f72ea6a887149913",
     "mujoco-warp",
     "torch>=2.9.1",
 ]
