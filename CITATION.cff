@@ -1,0 +1,21 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: >-
+  muwanx: Browser-based MuJoCo simulation with real-time
+  policy control
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - given-names: Tatsuki
+    family-names: Tsujimoto
+    email: tatsuki.tsujimoto@gmail.com
+repository-code: 'https://github.com/ttktjmt/muwanx'
+keywords:
+  - reinforcement-learning
+  - mujoco
+  - onnx
+license: Apache-2.0
