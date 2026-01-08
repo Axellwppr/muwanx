@@ -193,7 +193,6 @@ function App() {
   const [currentProject, setCurrentProject] = useState<ProjectConfig | null>(null);
   const [currentScene, setCurrentScene] = useState<SceneConfig | null>(null);
   const [selectedMenu, setSelectedMenu] = useState<string | null>(null);
-  const [viewerStatus, setViewerStatus] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
 
   const projectId = useMemo(() => getProjectIdFromLocation(), []);
@@ -345,7 +344,6 @@ function App() {
         <MuwanxViewer
           scenePath={scenePath}
           baseUrl={import.meta.env.BASE_URL || '/'}
-          onStatusChange={setViewerStatus}
           onError={handleViewerError}
         />
       </div>

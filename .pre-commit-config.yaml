@@ -19,3 +19,14 @@ repos:
       # Run the formatter.
       - id: ruff-format
         exclude: '^typings/'
+
+  - repo: local
+    hooks:
+      - id: eslint
+        name: eslint
+        entry: >
+          npx eslint
+          --config src/muwanx/template/eslint.config.cjs
+          --fix
+        language: node
+        files: ^src/muwanx/template/.*\.(js|jsx|ts|tsx)$
