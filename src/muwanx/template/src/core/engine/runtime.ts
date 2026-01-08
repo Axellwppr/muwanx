@@ -7,7 +7,9 @@ import {
   getPosition,
   getQuaternion,
   loadSceneFromURL,
+  toMujocoPos,
 } from '../scene/scene';
+import { DragStateManager } from '../utils/dragStateManager';
 import { createTendonState, updateTendonGeometry, updateTendonRendering } from '../scene/tendons';
 import { updateHeadlightFromCamera, updateLightsFromData } from '../scene/lights';
 
@@ -43,6 +45,8 @@ export class MuwanxRuntime {
   private decimation: number;
   private loadingScene: Promise<void> | null;
   private resizeObserver: ResizeObserver | null;
+  private dragStateManager: DragStateManager | null;
+  private dragForceScale: number;
 
   constructor(mujoco: Mujoco, container: HTMLElement, options: RuntimeOptions = {}) {
     this.mujoco = mujoco;
@@ -118,6 +122,8 @@ export class MuwanxRuntime {
     this.timestep = 0.001;
     this.decimation = 1;
     this.loadingScene = null;
+    this.dragStateManager = null;
+    this.dragForceScale = 25.0;
   }
 
   async loadEnvironment(scenePath: string): Promise<void> {
@@ -164,6 +170,18 @@ export class MuwanxRuntime {
 
       this.lastSimState.bodies.clear();
       this.updateCachedState();
+
+      // Initialize DragStateManager
+      if (!this.dragStateManager) {
+        this.dragStateManager = new DragStateManager({
+          scene: this.scene,
+          renderer: this.renderer,
+          camera: this.camera,
+          container: this.container,
+          controls: this.controls,
+        });
+      }
+
       this.loadingScene = null;
     })();
 
@@ -211,9 +229,78 @@ export class MuwanxRuntime {
     if (!this.mjModel || !this.mjData) {
       return;
     }
+    // Apply drag forces
+    this.applyDragForces();
+
     for (let substep = 0; substep < this.decimation; substep++) {
       this.mujoco.mj_step(this.mjModel, this.mjData);
     }
+  }
+
+  private applyDragForces(): void {
+    if (!this.dragStateManager || !this.mjModel || !this.mjData || !this.bodies) {
+      return;
+    }
+
+    // Clear xfrc_applied (reset to zero at each step)
+    for (let i = 0; i < this.mjData.xfrc_applied.length; i++) {
+      this.mjData.xfrc_applied[i] = 0.0;
+    }
+
+    const dragged = this.dragStateManager.physicsObject;
+    if (!dragged || !('bodyID' in dragged) || typeof dragged.bodyID !== 'number' || dragged.bodyID <= 0) {
+      return;
+    }
+
+    const bodyId = dragged.bodyID as number;
+
+    // Update body positions (for drag calculation)
+    for (let b = 0; b < this.mjModel.nbody; b++) {
+      if (this.bodies[b]) {
+        getPosition(this.mjData.xpos, b, this.bodies[b].position);
+        getQuaternion(this.mjData.xquat, b, this.bodies[b].quaternion);
+        this.bodies[b].updateWorldMatrix(true, false);
+      }
+    }
+
+    // Update offset
+    this.dragStateManager.update();
+
+    // Calculate force (Three.js coordinate system → MuJoCo coordinate system)
+    const forceThree = this.dragStateManager.offset
+      .clone()
+      .multiplyScalar(this.dragForceScale);
+    const force = toMujocoPos(forceThree);
+
+    // Point where force is applied (world coordinates)
+    const pointThree = this.dragStateManager.worldHit.clone();
+    const point = toMujocoPos(pointThree);
+
+    // Body position
+    const bodyPos = new THREE.Vector3(
+      this.mjData.xpos[bodyId * 3 + 0],
+      this.mjData.xpos[bodyId * 3 + 1],
+      this.mjData.xpos[bodyId * 3 + 2]
+    );
+
+    // Calculate torque: τ = r × F
+    const r = new THREE.Vector3(
+      point.x - bodyPos.x,
+      point.y - bodyPos.y,
+      point.z - bodyPos.z
+    );
+    const f = new THREE.Vector3(force.x, force.y, force.z);
+    const torque = new THREE.Vector3().crossVectors(r, f);
+
+    // Set xfrc_applied
+    // xfrc_applied: (nbody, 6) = [fx, fy, fz, tx, ty, tz] for each body
+    const offset = bodyId * 6;
+    this.mjData.xfrc_applied[offset + 0] = force.x;
+    this.mjData.xfrc_applied[offset + 1] = force.y;
+    this.mjData.xfrc_applied[offset + 2] = force.z;
+    this.mjData.xfrc_applied[offset + 3] = torque.x;
+    this.mjData.xfrc_applied[offset + 4] = torque.y;
+    this.mjData.xfrc_applied[offset + 5] = torque.z;
   }
 
   private updateCachedState(): void {
@@ -287,6 +374,11 @@ export class MuwanxRuntime {
 
   dispose(): void {
     this.stop();
+
+    if (this.dragStateManager) {
+      this.dragStateManager.dispose();
+      this.dragStateManager = null;
+    }
 
     if (this.mjData) {
       try {
