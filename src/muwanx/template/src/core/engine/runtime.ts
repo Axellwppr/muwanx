@@ -123,7 +123,7 @@ export class MuwanxRuntime {
     this.decimation = 1;
     this.loadingScene = null;
     this.dragStateManager = null;
-    this.dragForceScale = 25.0;
+    this.dragForceScale = 100.0;
   }
 
   async loadEnvironment(scenePath: string): Promise<void> {
