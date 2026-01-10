@@ -81,6 +81,7 @@ export class MuwanxRuntime {
     this.scene.add(this.camera);
 
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
+    this.renderer.xr.enabled = true;
     this.renderer.setPixelRatio(window.devicePixelRatio);
     this.renderer.setSize(width, height);
     this.renderer.shadowMap.enabled = true;

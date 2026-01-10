@@ -56,3 +56,6 @@ __pycache__/
 
 # Local package files
 muwanx-*.tgz
+
+# Claude
+.claude
