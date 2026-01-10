@@ -174,11 +174,12 @@ export function createLights({
     lights.push(headLight);
   }
 
-  if (!ambientSum.equals(new THREE.Color(0, 0, 0))) {
-    const ambientLight = new THREE.AmbientLight(ambientSum, 0.2);
-    mujocoRoot.add(ambientLight);
-    lights.push(ambientLight);
-  }
+  const ambientColor = ambientSum.equals(new THREE.Color(0, 0, 0))
+    ? new THREE.Color(1, 1, 1)
+    : ambientSum;
+  const ambientLight = new THREE.AmbientLight(ambientColor, 0.5);
+  mujocoRoot.add(ambientLight);
+  lights.push(ambientLight);
 
   if (lights.length === 0) {
     console.warn('No active lights found in MuJoCo model; adding default light.');
