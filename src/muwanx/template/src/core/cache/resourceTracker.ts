@@ -87,8 +87,9 @@ export class SceneResourceTracker {
   }): number {
     let totalBytes = 0;
 
-    // Estimate MuJoCo model and data
+    // Estimate MuJoCo model and data separately
     totalBytes += this.estimateMuJoCoMemory(resources.mjModel);
+    totalBytes += this.estimateMjDataMemory(resources.mjData);
 
     // Estimate geometries
     for (const geometry of Object.values(resources.meshes)) {
@@ -140,8 +141,39 @@ export class SceneResourceTracker {
     // Texture data
     if (mjModel.tex_data) bytes += mjModel.tex_data.length;
 
-    // Data state (similar to model)
-    bytes += bytes; // Approximate data size as similar to model
+    return bytes;
+  }
+
+  /**
+   * Estimate MuJoCo data memory
+   */
+  private estimateMjDataMemory(mjData: MjData): number {
+    let bytes = 0;
+
+    // State vectors (dynamic simulation state)
+    if (mjData.qpos) bytes += mjData.qpos.length * 8; // Generalized positions (double)
+    if (mjData.qvel) bytes += mjData.qvel.length * 8; // Generalized velocities (double)
+    if (mjData.qacc) bytes += mjData.qacc.length * 8; // Generalized accelerations (double)
+    if (mjData.qacc_warmstart) bytes += mjData.qacc_warmstart.length * 8; // Acceleration warmstart (double)
+
+    // Control and actuation
+    if (mjData.ctrl) bytes += mjData.ctrl.length * 8; // Control signals (double)
+    if (mjData.qfrc_applied) bytes += mjData.qfrc_applied.length * 8; // Applied forces (double)
+    if (mjData.xfrc_applied) bytes += mjData.xfrc_applied.length * 8; // Applied Cartesian forces (double)
+
+    // Computed quantities (Cartesian positions, velocities, etc.)
+    if (mjData.xpos) bytes += mjData.xpos.length * 8; // Body positions (double)
+    if (mjData.xquat) bytes += mjData.xquat.length * 8; // Body orientations (double)
+    if (mjData.xmat) bytes += mjData.xmat.length * 8; // Body orientation matrices (double)
+    if (mjData.xipos) bytes += mjData.xipos.length * 8; // Body CoM positions (double)
+    if (mjData.ximat) bytes += mjData.ximat.length * 8; // Body inertia matrices (double)
+
+    // Contact and constraint data
+    if (mjData.ncon) bytes += mjData.ncon * 256; // Contact data (approximate struct size)
+    if (mjData.efc_force) bytes += mjData.efc_force.length * 8; // Constraint forces (double)
+
+    // Sensor data
+    if (mjData.sensordata) bytes += mjData.sensordata.length * 8; // Sensor readings (double)
 
     return bytes;
   }
