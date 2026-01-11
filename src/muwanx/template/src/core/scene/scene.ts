@@ -10,6 +10,15 @@ const DEFAULT_BASE_URL = (import.meta.env.BASE_URL || '/').replace(/\/+$/, '');
 const BINARY_EXTENSIONS = ['.png', '.stl', '.skn', '.mjb', '.msh', '.npy'];
 const sceneDownloadPromises = new Map<string, Promise<void>>();
 
+/**
+ * Clear download promise cache for a specific scene
+ * This is used by the cache manager when evicting scenes
+ */
+export function clearSceneDownloadCache(scenePath: string): void {
+  const normalizedPath = scenePath.replace(/^[./]+/, '');
+  sceneDownloadPromises.delete(normalizedPath);
+}
+
 function isBinaryAsset(path: string): boolean {
   const lower = path.toLowerCase();
   return BINARY_EXTENSIONS.some((ext) => lower.endsWith(ext));

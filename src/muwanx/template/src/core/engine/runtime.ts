@@ -12,6 +12,9 @@ import { DragStateManager } from '../utils/dragStateManager';
 import { createTendonState, updateTendonGeometry, updateTendonRendering } from '../scene/tendons';
 import { updateHeadlightFromCamera, updateLightsFromData } from '../scene/lights';
 import { threeToMjcCoordinate } from '../scene/coordinate';
+import { SceneCacheManager } from '../cache/sceneCacheManager';
+import { SceneResourceTracker } from '../cache/resourceTracker';
+import { MemoryMonitor } from '../cache/memoryMonitor';
 
 type RuntimeOptions = {
   baseUrl?: string;
@@ -47,6 +50,9 @@ export class MuwanxRuntime {
   private resizeObserver: ResizeObserver | null;
   private dragStateManager: DragStateManager | null;
   private dragForceScale: number;
+  private sceneCacheManager: SceneCacheManager;
+  private resourceTracker: SceneResourceTracker;
+  private memoryMonitor: MemoryMonitor;
 
   constructor(mujoco: Mujoco, container: HTMLElement, options: RuntimeOptions = {}) {
     this.mujoco = mujoco;
@@ -127,12 +133,48 @@ export class MuwanxRuntime {
     this.loadingScene = null;
     this.dragStateManager = null;
     this.dragForceScale = 100.0;
+
+    // Initialize cache system (singleton shared across runtime instances)
+    this.sceneCacheManager = SceneCacheManager.getInstance(this.mujoco);
+    this.resourceTracker = new SceneResourceTracker();
+    this.memoryMonitor = new MemoryMonitor();
   }
 
   async loadEnvironment(scenePath: string): Promise<void> {
     await this.stop();
-    await downloadExampleScenesFolder(this.mujoco, scenePath, this.baseUrl);
-    await this.loadScene(scenePath);
+
+    const startTime = performance.now();
+
+    // Check cache first
+    if (this.sceneCacheManager.has(scenePath)) {
+      await this.restoreFromCache(scenePath);
+      const elapsed = performance.now() - startTime;
+      this.memoryMonitor.logCacheOperation('hit', scenePath, { elapsedMs: elapsed });
+    } else {
+      this.memoryMonitor.logCacheOperation('miss', scenePath);
+
+      // Prepare cache for new scene (may trigger eviction)
+      await this.sceneCacheManager.prepareForNewScene();
+
+      // Clear current references before loading new scene
+      // This prevents loadSceneFromURL from deleting cached objects
+      this.mjModel = null;
+      this.mjData = null;
+      this.bodies = null;
+      this.lights = [];
+      this.mujocoRoot = null;
+
+      // Start tracking resources
+      this.resourceTracker.startTracking(this.mujoco);
+
+      // Normal load
+      await downloadExampleScenesFolder(this.mujoco, scenePath, this.baseUrl);
+      await this.loadScene(scenePath);
+
+      // Capture and cache resources
+      await this.captureAndCacheResources(scenePath);
+    }
+
     this.running = true;
     void this.startLoop();
   }
@@ -382,24 +424,16 @@ export class MuwanxRuntime {
       this.dragStateManager = null;
     }
 
-    if (this.mjData) {
-      try {
-        this.mjData.delete();
-      } catch (error) {
-        console.warn('Failed to delete mjData:', error);
-      }
-      this.mjData = null;
-    }
-    if (this.mjModel) {
-      try {
-        this.mjModel.delete();
-      } catch (error) {
-        console.warn('Failed to delete mjModel:', error);
-      }
-      this.mjModel = null;
-    }
+    // NOTE: Do NOT delete mjData/mjModel here as they may be cached
+    // The cache manager will handle their disposal when evicting
+    // Just clear references
+    this.mjData = null;
+    this.mjModel = null;
 
-    this.disposeThreeJSResources();
+    // NOTE: Do NOT dispose Three.js resources here as they may be cached
+    // The cache manager will handle their disposal when evicting
+    // Just clear references
+    // this.disposeThreeJSResources();
 
     window.removeEventListener('resize', this.onWindowResize);
     this.resizeObserver?.disconnect();
@@ -480,5 +514,100 @@ export class MuwanxRuntime {
       width: Math.max(1, width),
       height: Math.max(1, height),
     };
+  }
+
+  /**
+   * Restore scene from cache
+   */
+  private async restoreFromCache(scenePath: string): Promise<void> {
+    const resources = this.sceneCacheManager.get(scenePath);
+    if (!resources) {
+      throw new Error(`Scene ${scenePath} not found in cache`);
+    }
+
+    // Remove existing root if present
+    const existingRoot = this.scene.getObjectByName('MuJoCo Root');
+    if (existingRoot) {
+      this.scene.remove(existingRoot);
+    }
+
+    // Restore MuJoCo objects
+    this.mjModel = resources.mjModel;
+    this.mjData = resources.mjData;
+
+    // Restore Three.js resources
+    this.bodies = resources.bodies;
+    this.lights = resources.lights;
+    this.mujocoRoot = resources.mujocoRoot;
+
+    // Re-add root to scene
+    this.scene.add(this.mujocoRoot);
+
+    // Run forward dynamics
+    this.mujoco.mj_forward(this.mjModel, this.mjData);
+
+    // Update runtime parameters
+    this.timestep = this.mjModel.opt.timestep || 0.001;
+    this.decimation = Math.max(1, Math.round(0.02 / this.timestep));
+
+    // Clear and update cached state
+    this.lastSimState.bodies.clear();
+    this.updateCachedState();
+
+    // Initialize DragStateManager if needed
+    if (!this.dragStateManager) {
+      this.dragStateManager = new DragStateManager({
+        scene: this.scene,
+        renderer: this.renderer,
+        camera: this.camera,
+        container: this.container,
+        controls: this.controls,
+      });
+    }
+  }
+
+  /**
+   * Capture resources and add to cache
+   */
+  private async captureAndCacheResources(scenePath: string): Promise<void> {
+    // Stop tracking and get FS files
+    const fsFiles = this.resourceTracker.stopTracking(this.mujoco);
+
+    if (!this.mjModel || !this.mjData || !this.bodies || !this.mujocoRoot) {
+      console.warn('[SceneCache] Cannot cache scene: missing resources');
+      return;
+    }
+
+    // Estimate memory usage
+    const estimatedMemoryBytes = this.resourceTracker.estimateSceneMemory({
+      mjModel: this.mjModel,
+      mjData: this.mjData,
+      bodies: this.bodies,
+      meshes: {}, // Meshes are part of the scene
+      mujocoRoot: this.mujocoRoot,
+    });
+
+    // Create cache entry
+    await this.sceneCacheManager.set(scenePath, {
+      scenePath,
+      lastAccessed: Date.now(),
+      loadedAt: Date.now(),
+      mjModel: this.mjModel,
+      mjData: this.mjData,
+      bodies: this.bodies,
+      lights: this.lights,
+      meshes: {},
+      mujocoRoot: this.mujocoRoot,
+      fsFiles,
+      estimatedMemoryBytes,
+    });
+
+    // Log the cache operation
+    const metrics = this.sceneCacheManager.getMetrics();
+    this.memoryMonitor.logCacheOperation('load', scenePath, {
+      memoryMB: estimatedMemoryBytes / 1048576,
+      totalScenes: metrics.totalScenes,
+      totalMemoryMB: metrics.totalMemoryBytes / 1048576,
+    });
   }
 }
