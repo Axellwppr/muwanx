@@ -66,6 +66,8 @@ class SceneHandle:
         *,
         metadata: dict[str, Any] | None = None,
         source_path: str | None = None,
+        config_path: str | None = None,
+        config: dict[str, Any] | None = None,
     ) -> PolicyConfig:
         """Add an ONNX policy to this scene.
 
@@ -73,6 +75,8 @@ class SceneHandle:
             policy: ONNX model containing the policy.
             name: Name for the policy (displayed in the UI).
             metadata: Optional metadata dictionary for the policy.
+            config_path: Optional path to a policy configuration JSON file.
+            config: Optional policy configuration payload as a dictionary.
 
         Returns:
             PolicyConfig object representing the added policy.
@@ -81,7 +85,12 @@ class SceneHandle:
             metadata = {}
 
         policy_config = PolicyConfig(
-            name=name, model=policy, metadata=metadata, source_path=source_path
+            name=name,
+            model=policy,
+            metadata=metadata,
+            source_path=source_path,
+            config_path=config_path,
+            config=config,
         )
         self._config.policies.append(policy_config)
         return policy_config

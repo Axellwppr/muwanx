@@ -18,6 +18,7 @@ import onnx
 from . import __version__
 from ._build_client import ClientBuilder
 from .app import MuwanxApp
+from .policy import PolicyConfig
 from .project import ProjectConfig, ProjectHandle
 from .scene import SceneConfig
 from .utils import name2id
@@ -131,16 +132,19 @@ class Builder:
                             # "path": scene.path,
                             "path": self._get_scene_web_path(scene),
                             "policies": [
-                                (
-                                    {
-                                        "name": policy.name,
-                                        **(
-                                            {"source": policy.source_path}
-                                            if getattr(policy, "source_path", None)
-                                            else {}
-                                        ),
-                                    }
-                                )
+                                {
+                                    "name": policy.name,
+                                    "source": self._get_policy_web_path(scene, policy),
+                                    **(
+                                        {
+                                            "config": self._get_policy_config_web_path(
+                                                scene, policy
+                                            )
+                                        }
+                                        if policy.config or policy.config_path
+                                        else {}
+                                    ),
+                                }
                                 for policy in scene.policies
                             ],
                         }
@@ -332,6 +336,10 @@ class Builder:
                     policy_path.mkdir(parents=True, exist_ok=True)
 
                     onnx.save(policy.model, str(policy_path / f"{policy_name}.onnx"))
+                    if policy.config or policy.config_path:
+                        self._save_policy_config(
+                            policy, policy_path / f"{policy_name}.json"
+                        )
 
         print(f"✓ Saved muwanx application to: {output_path}")
 
@@ -368,6 +376,29 @@ class Builder:
         rel_scene_path = Path("scene") / name2id(scene.name) / "scene.xml"
         return source_path, rel_scene_path, source_path.parent, rel_scene_path.parent
 
+    def _save_policy_config(self, policy: PolicyConfig, target_path: Path) -> None:
+        if policy.config is not None:
+            with open(target_path, "w") as f:
+                json.dump(policy.config, f, indent=2)
+            return
+
+        if not policy.config_path:
+            return
+
+        source_path = Path(policy.config_path).expanduser()
+        if not source_path.is_absolute():
+            source_path = (Path.cwd() / source_path).resolve()
+
+        if not source_path.exists():
+            warnings.warn(
+                f"Policy config path not found: {source_path}",
+                category=RuntimeWarning,
+                stacklevel=2,
+            )
+            return
+
+        shutil.copy(str(source_path), str(target_path))
+
     def _get_scene_web_path(self, scene: SceneConfig) -> str:
         resolved = self._resolve_scene_source(scene)
         if resolved:
@@ -376,6 +407,16 @@ class Builder:
                 return rel_scene_path.as_posix()
         scene_name = name2id(scene.name)
         return f"scene/{scene_name}/scene.xml"
+
+    def _get_policy_web_path(self, scene: SceneConfig, policy: PolicyConfig) -> str:
+        scene_name = name2id(scene.name)
+        policy_name = name2id(policy.name)
+        return f"policy/{scene_name}/{policy_name}.onnx"
+
+    def _get_policy_config_web_path(self, scene: SceneConfig, policy: PolicyConfig) -> str:
+        scene_name = name2id(scene.name)
+        policy_name = name2id(policy.name)
+        return f"policy/{scene_name}/{policy_name}.json"
 
     def get_projects(self) -> list[ProjectConfig]:
         """Get a copy of all project configurations.

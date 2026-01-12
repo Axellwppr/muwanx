@@ -24,6 +24,12 @@ class PolicyConfig:
     metadata: dict[str, Any] = field(default_factory=dict)
     """Additional metadata for the policy."""
 
+    config: dict[str, Any] | None = None
+    """Optional JSON configuration for policy-side logic."""
+
+    config_path: str | None = None
+    """Optional source path to the policy configuration JSON file."""
+
     source_path: str | None = None
     """Optional source path for the policy ONNX file."""
 
