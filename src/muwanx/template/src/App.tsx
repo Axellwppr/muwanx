@@ -6,6 +6,8 @@ import ControlPanel from './ControlPanel';
 interface PolicyConfig {
   name: string;
   metadata: Record<string, unknown>;
+  source?: string;
+  config?: string;
 }
 
 interface SceneConfig {
@@ -235,6 +237,19 @@ function App() {
       : `scene/${sanitizeName(currentScene.name)}/scene.xml`;
     return `${projectDir}/assets/${sceneRelPath}`.replace(/\/+/g, '/');
   }, [currentProject, currentScene]);
+  const selectedPolicy = useMemo(() => {
+    if (!currentScene || !selectedMenu) {
+      return null;
+    }
+    return currentScene.policies.find((policy) => policy.name === selectedMenu) ?? null;
+  }, [currentScene, selectedMenu]);
+  const policyConfigPath = useMemo(() => {
+    if (!currentProject || !selectedPolicy?.config) {
+      return null;
+    }
+    const projectDir = currentProject.id ? currentProject.id : 'main';
+    return `${projectDir}/assets/${selectedPolicy.config}`.replace(/\/+/g, '/');
+  }, [currentProject, selectedPolicy]);
   const projectOptions = useMemo(() => {
     if (!config) {
       return [] as { value: string; label: string }[];
@@ -344,6 +359,7 @@ function App() {
         <MuwanxViewer
           scenePath={scenePath}
           baseUrl={import.meta.env.BASE_URL || '/'}
+          policyConfigPath={policyConfigPath}
           onError={handleViewerError}
         />
       </div>

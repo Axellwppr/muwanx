@@ -32,5 +32,9 @@ declare module 'mujoco-js' {
             mjNTEXROLE: { value: number };
             [key: string]: { value: number };
         };
+        mjtTrn: {
+            mjTRN_JOINT: { value: number };
+            [key: string]: { value: number };
+        };
     }
 }

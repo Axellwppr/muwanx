@@ -25,6 +25,17 @@ export type PolicyConfig = {
   policy_module?: string;
   policy_joint_names?: string[];
   default_joint_pos?: number[];
+  action_scale?: number[] | number;
+  stiffness?: number[] | number;
+  damping?: number[] | number;
+  control_type?: string;
+  onnx?: {
+    path: string;
+    meta?: {
+      in_keys?: string[];
+      out_keys?: string[];
+    };
+  };
   obs_config?: {
     policy?: ObservationConfigEntry[];
   };

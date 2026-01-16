@@ -29,6 +29,7 @@ export class PolicyRunner {
   private policyJointNames: string[];
   private defaultJointPos: Float32Array;
   private numActions: number;
+  private lastActions: Float32Array;
 
   constructor(config: PolicyConfig, options: PolicyRunnerOptions = {}) {
     this.config = config;
@@ -41,6 +42,7 @@ export class PolicyRunner {
 
     this.policyJointNames = (config.policy_joint_names ?? []).slice();
     this.numActions = this.policyJointNames.length;
+    this.lastActions = new Float32Array(this.numActions);
     this.defaultJointPos = this.normalizeArray(
       config.default_joint_pos ?? [],
       this.numActions,
@@ -60,6 +62,7 @@ export class PolicyRunner {
   }
 
   reset(state?: PolicyState): void {
+    this.lastActions.fill(0.0);
     this.policyModule?.reset(state);
     for (const obs of this.obsModules) {
       if (obs.reset) {
@@ -132,6 +135,18 @@ export class PolicyRunner {
     return new Float32Array(this.defaultJointPos);
   }
 
+  getLastActions(): Float32Array {
+    return new Float32Array(this.lastActions);
+  }
+
+  setLastActions(actions: Float32Array): void {
+    if (actions.length !== this.lastActions.length) {
+      this.lastActions = new Float32Array(actions);
+      return;
+    }
+    this.lastActions.set(actions);
+  }
+
   private async buildPolicyModule(
     context: PolicyRunnerContext
   ): Promise<PolicyModule | null> {
@@ -154,7 +169,9 @@ export class PolicyRunner {
 
   private buildObservations(): ObservationBase[] {
     const registry = this.options.observations ?? {};
-    const obsList = this.config.obs_config?.policy ?? [];
+    const obsList = Array.isArray(this.config.obs_config?.policy)
+      ? this.config.obs_config?.policy
+      : [];
 
     return obsList.map((entry) => {
       const ObsClass = registry[entry.name];
@@ -166,7 +183,9 @@ export class PolicyRunner {
   }
 
   private getObsName(index: number): string {
-    const obsList = this.config.obs_config?.policy ?? [];
+    const obsList = Array.isArray(this.config.obs_config?.policy)
+      ? this.config.obs_config?.policy
+      : [];
     return obsList[index]?.name ?? `obs_${index}`;
   }
 
